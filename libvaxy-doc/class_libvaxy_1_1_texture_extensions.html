@@ -118,12 +118,17 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a57e9a9a29c0e070e5947c09d826e5b05"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_libvaxy_1_1_texture_extensions.html#a57e9a9a29c0e070e5947c09d826e5b05">MergeTexture</a> (this Texture2D texture, Texture2D otherTexture, bool allowAlpha=false)</td></tr>
 <tr class="memdesc:a57e9a9a29c0e070e5947c09d826e5b05"><td class="mdescLeft">&#160;</td><td class="mdescRight">Merges a texture with another texture by interpolating between them both. You can optionally specify whether transparent pixels are interpolated or ignored (ignored by default).  <a href="class_libvaxy_1_1_texture_extensions.html#a57e9a9a29c0e070e5947c09d826e5b05">More...</a><br /></td></tr>
 <tr class="separator:a57e9a9a29c0e070e5947c09d826e5b05"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae70e06d41e3c8d117b4baa2c38386a30"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_libvaxy_1_1_texture_extensions.html#ae70e06d41e3c8d117b4baa2c38386a30">ContainsColor</a> (this Texture2D texture, Color searchColor, float tolerance=0, bool alphaTolerant=false)</td></tr>
+<tr class="memdesc:ae70e06d41e3c8d117b4baa2c38386a30"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns whether a specific color is found in the texture or a color within a range of colors to your selected color.  <a href="class_libvaxy_1_1_texture_extensions.html#ae70e06d41e3c8d117b4baa2c38386a30">More...</a><br /></td></tr>
+<tr class="separator:ae70e06d41e3c8d117b4baa2c38386a30"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8655f1d932fac937b0649c06188982a1"><td class="memItemLeft" align="right" valign="top">static Texture2D&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_libvaxy_1_1_texture_extensions.html#a8655f1d932fac937b0649c06188982a1">CreateTexture</a> (int width, int height)</td></tr>
 <tr class="memdesc:a8655f1d932fac937b0649c06188982a1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a blank texture you can use. <a class="el" href="namespace_libvaxy.html">Libvaxy</a> will automatically dispose this texture on unload.  <a href="class_libvaxy_1_1_texture_extensions.html#a8655f1d932fac937b0649c06188982a1">More...</a><br /></td></tr>
 <tr class="separator:a8655f1d932fac937b0649c06188982a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-static-methods"></a>
 Static Private Member Functions</h2></td></tr>
+<tr class="memitem:ab3dc0e8929ed32bf4571d443e3e44abc"><td class="memItemLeft" align="right" valign="top">static byte&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_libvaxy_1_1_texture_extensions.html#ab3dc0e8929ed32bf4571d443e3e44abc">GetColorTolerance</a> (float hueValue, float tolerance)</td></tr>
+<tr class="separator:ab3dc0e8929ed32bf4571d443e3e44abc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3bdc9abefe22b5d5f6a8203255d61cdf"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_libvaxy_1_1_texture_extensions.html#a3bdc9abefe22b5d5f6a8203255d61cdf">CoordinateToIndex</a> (int x, int y, int width)</td></tr>
 <tr class="separator:a3bdc9abefe22b5d5f6a8203255d61cdf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa44169fb1627fa6d51381f9656ffa806"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_libvaxy_1_1_texture_extensions.html#aa44169fb1627fa6d51381f9656ffa806">CheckMasksCompatible</a> (Texture2D texture, Texture2D mask)</td></tr>
@@ -168,7 +173,7 @@ Static Private Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="_texture_extensions_8cs_source.html#l00232">232</a> of file <a class="el" href="_texture_extensions_8cs_source.html">TextureExtensions.cs</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_texture_extensions_8cs_source.html#l00277">277</a> of file <a class="el" href="_texture_extensions_8cs_source.html">TextureExtensions.cs</a>.</p>
 
 </div>
 </div>
@@ -247,6 +252,67 @@ Static Private Member Functions</h2></td></tr>
 <dl class="section return"><dt>Returns</dt><dd>The cloned texture rectangle.</dd></dl>
 
 <p class="definition">Definition at line <a class="el" href="_texture_extensions_8cs_source.html#l00144">144</a> of file <a class="el" href="_texture_extensions_8cs_source.html">TextureExtensions.cs</a>.</p>
+
+</div>
+</div>
+<a id="ae70e06d41e3c8d117b4baa2c38386a30"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae70e06d41e3c8d117b4baa2c38386a30">&#9670;&nbsp;</a></span>ContainsColor()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static bool Libvaxy.TextureExtensions.ContainsColor </td>
+          <td>(</td>
+          <td class="paramtype">this Texture2D&#160;</td>
+          <td class="paramname"><em>texture</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Color&#160;</td>
+          <td class="paramname"><em>searchColor</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">float&#160;</td>
+          <td class="paramname"><em>tolerance</em> = <code>0</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>alphaTolerant</em> = <code>false</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns whether a specific color is found in the texture or a color within a range of colors to your selected color. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">searchColor</td><td>The color you wish to search for.</td></tr>
+    <tr><td class="paramname">tolerance</td><td>The tolerance level in hue shiftings, starting from 0 for no tolerance, by default, going up to 1 for any degree of difference in hue (100%)</td></tr>
+    <tr><td class="paramname">alphaTolerant</td><td>Whether to take alpha into consideration. False by default.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>True if the color or specified approximate color was found.</dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="_texture_extensions_8cs_source.html#l00224">224</a> of file <a class="el" href="_texture_extensions_8cs_source.html">TextureExtensions.cs</a>.</p>
 
 </div>
 </div>
@@ -336,7 +402,7 @@ Static Private Member Functions</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The newly created texture.</dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="_texture_extensions_8cs_source.html#l00223">223</a> of file <a class="el" href="_texture_extensions_8cs_source.html">TextureExtensions.cs</a>.</p>
+<p class="definition">Definition at line <a class="el" href="_texture_extensions_8cs_source.html#l00266">266</a> of file <a class="el" href="_texture_extensions_8cs_source.html">TextureExtensions.cs</a>.</p>
 
 </div>
 </div>
@@ -489,6 +555,42 @@ Static Private Member Functions</h2></td></tr>
 </dl>
 
 <p class="definition">Definition at line <a class="el" href="_texture_extensions_8cs_source.html#l00071">71</a> of file <a class="el" href="_texture_extensions_8cs_source.html">TextureExtensions.cs</a>.</p>
+
+</div>
+</div>
+<a id="ab3dc0e8929ed32bf4571d443e3e44abc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab3dc0e8929ed32bf4571d443e3e44abc">&#9670;&nbsp;</a></span>GetColorTolerance()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static byte Libvaxy.TextureExtensions.GetColorTolerance </td>
+          <td>(</td>
+          <td class="paramtype">float&#160;</td>
+          <td class="paramname"><em>hueValue</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">float&#160;</td>
+          <td class="paramname"><em>tolerance</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
 
 </div>
 </div>

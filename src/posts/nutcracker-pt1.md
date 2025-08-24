@@ -29,6 +29,8 @@ impl AwesomePRNG {
 }
 ```
 
+## A whole CS field for PRNGs? Ha!
+
 Simple, right? We initialize our PRNG with a seed, which can be any number, and every time we want a random number, we simply call `next()`, which fiddles with the state and returns it. That's all we have to do. Our choice of numbers here is arbitrary, but that modulo means the numbers we return will range from 0 to 4 inclusive.
 
 Now let's run our awesome PRNG and examine its output:
@@ -116,6 +118,8 @@ Spoiler: print out the first 30 numbers instead of the first 20.
 
 We did not, in fact, fix the problem. While it's certainly better than our initial attempts, our PRNG repeats itself every 20 numbers.
 
+## Tough Luck
+
 Our PRNG here, by the way, actually belongs to a family of PRNGs called **LCG**s: Linear Congruential Generators. An LCG is defined as the recurrence relation `X_n+1 = (a * X_n + c) mod m`. That is, the next state is obtained by taking the current state, multiplying it by some number `a`, adding `c`, then taking the modulo `m` of the result, exactly what `AwesomePRNG` is doing.
 
 ... But `AwesomePRNG` isn't a *true* LCG, because there are additional restrictions to qualify as one:
@@ -158,6 +162,8 @@ At this point, a programmer's first intuition would be one of two things:
 2. The specific combination of `a`, `c`, and `m` dictates the quality of the LCG
 
 I don't want to give up on LCGs *just* yet, so let's keep trying different combinations. So far, we've been naively plugging random numbers. I'm no mathematician, but there's probably a way of figuring out way better ones than everything we've tried.
+
+## We can totally do better(?)
 
 It's a simple recurrence relation, so surely it should be easy! Let's try to approach it analytically (but informally, because I actually don't like math).
 
@@ -378,6 +384,8 @@ a: 67, c: 98, m: 99
 
 Well. I don't see anything obvious right off the bat. It's obvious there isn't a linear relationship between those numbers, so that rules out any kind of linear regression.
 
+##
+
 Here's a hunch: let's break down every number in there down to its prime factors. We saw earlier an interesting pattern where `c` was prime each time we achieved a full period when `a = 1, m = 20`. That's most definitely not a coincidence.
 
 So:
@@ -410,10 +418,10 @@ Now let's suppose we simply have the seed set to `0`, and we can trace how the L
 
 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
  once we've reached 8,   ^
- we'll wrap around to 9
+ we'll wrap around to 0 next
 ```
 
-Even though the state space is 10 numbers, the step size of `c` means you will never see odd numbers. Because `m` can divide `c`, it means you can *always* keep moving forwards by `c` until you exactly hit `m` and wrap around back to 0.
+Even though the state space is 10 numbers, the step size of `2` means you will never see odd numbers.
 
 The only way to actually reach the other states is changing the initial starting seeds, and if you do, you'll notice that you actually have 2 distinct possible loops for this LCG:
 ```
@@ -424,4 +432,61 @@ seed = 1
 1 -> 3 -> 5 -> 7 -> 9 -> 1
 ```
 
-Still, the loop we find ourselves in doesn't matter. It's a bad result.
+In essence, if `m` and `c` share any common factor (`gcd(m, c) != 1`), the LCG can never have a full period. Numbers where the `gcd` is `1` are called *coprime*.
+
+Here's another example with `c = 4` and `m = 12`. Again, `a = 1`, so we can ignore it.
+```
+seed 0
+0 -> 4 -> 8 -> 0
+
+seed 1
+1 -> 5 -> 9 -> 1
+
+seed 2
+2 -> 6 -> 10 -> 2
+
+seed 3
+3 -> 7 -> 11 -> 3
+```
+
+This time we get 4 distinct loops, none of which cover the entire state space.
+
+Think of it this way: the `gcd` tells you how many 'tracks' you can split the state space into. When `m` and `c` are coprime, `gcd(m, c) = 1`, which means the entire state space is just *one* track, where all numbers can be reached before looping.
+
+That might not sound convincing just hearing it, so let's try `m = 10, c = 3`. Again, `a = 1`.
+```
+seed 0
+0 -> 3 -> 6 -> 9 -> 2 -> 5 -> 8 -> 1 -> 4 -> 7 -> 0
+```
+
+`10` and `3` are coprime, so we have a full period. Let me re-illustrate what's actually happening here:
+```
+0 -> 3 -> 6 -> 9
+               ^ here, we're about to wrap around
+                 
+    but, crucially, we're one step short
+    of landing exactly at 0
+
+    this means when we wrap around,
+    it's like we're repeating the cycle,
+    except we're offset by -1
+
+9 -> 2 -> 5 -> 8
+^^^^^^^^^^^^^^^^
+notice how this cycle is exactly like
+the previous, just -1 (with modulo)
+
+8 -> 1 -> 4 -> 7
+same thing here!
+```
+
+Hopefully you have some intuitive sense of why `c` matters, and why you can't have a full-period LCG unless it is coprime with `m`!
+
+If they're not coprime, your LCG is doomed to have multiple tracks, none of which will explore the state space fully.
+
+We've also glimpsed why `a` matters here, too: we've shown that you can explore the entire state space using only `m` and `c`, but all the sequences will be very predictable - we're just stepping by `c` every time.
+
+Without `a` in the picture, our LCG isn't much of a useful generator, just a for loop with extra steps. We need it around in order to break predictability and make our LCG produce random-looking output.
+
+Be warned, though: the connection between `m` and `a` is considerably more subtle than the coprimality between `m` and `c`.
+

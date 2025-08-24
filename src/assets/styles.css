@@ -1,0 +1,301 @@
+:root {
+  --bg: #ffffff;
+  --fg: #000000;
+  --muted: #6a6a6a;
+  --link: #0d6efd;
+  --edge: #e7e7e9;
+  --code-bg: #f6f8fa;
+  /* slightly-opaque overlay to soften the animated canvas */
+  --overlay: rgba(255, 255, 255, 0.98);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0c0e;
+  --fg: #ffffff;
+    --muted: #9aa0a6;
+  --link: #687288;
+    --edge: #1b1e22;
+    --code-bg: #0f1115;
+  --overlay: rgba(0, 0, 0, 0.95);
+  }
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  /* Force light variables even if OS prefers dark */
+  --bg: #ffffff;
+  --fg: #000000;
+  --muted: #6a6a6a;
+  --link: #0d6efd;
+  --edge: #e7e7e9;
+  --code-bg: #f6f8fa;
+  --overlay: rgba(255, 255, 255, 0.95);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0c0e;
+  --fg: #ffffff;
+  --muted: #9aa0a6;
+  --link: #7aa2ff;
+  --edge: #1b1e22;
+  --code-bg: #0f1115;
+  --overlay: rgba(0, 0, 0, 0.95);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Set dark background by default to prevent white flash */
+html { 
+  background: #0b0c0e;
+  /* This will be overridden by var(--bg) once CSS variables are resolved */
+  background: var(--bg); 
+}
+
+body {
+  margin: 0;
+  /* slightly-opaque body background to mute the animated canvas */
+  background: var(--overlay);
+  color: var(--fg);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  line-height: 1.6;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.site-header,
+.site-footer {
+  max-width: 70ch;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.site-header {
+  background: var(--overlay);
+  color: var(--fg);
+  box-shadow: none;
+}
+
+.site-footer {
+  background: var(--overlay);
+  color: var(--fg);
+  box-shadow: none;
+}
+
+.content {
+  max-width: 70ch;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+  position: relative;
+  z-index: 1;
+  background: var(--overlay);
+  color: var(--fg);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.theme-toggle {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--edge);
+  color: var(--fg);
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+}
+
+pre,
+code,
+kbd,
+samp {
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+pre {
+  background: var(--code-bg) !important;
+  padding: 1rem;
+  overflow: auto;
+  border: 1px solid var(--edge);
+  color: var(--fg) !important;
+}
+
+/* Override PrismJS and any other syntax highlighting backgrounds */
+pre[class*="language-"],
+code[class*="language-"] {
+  background: var(--code-bg) !important;
+  color: var(--fg) !important;
+}
+
+/* Inline code styling */
+:not(pre) > code {
+  background: var(--code-bg) !important;
+  color: var(--fg) !important;
+  padding: 0.1em 0.3em;
+  border-radius: 0.3em;
+  font-size: 0.9em;
+}
+
+/* Syntax highlighting colors for dark theme */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #7c7c7c;
+}
+
+.token.punctuation {
+  color: #c792ea;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #f78c6c;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #c3e88d;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #89ddff;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #c792ea;
+}
+
+.token.function,
+.token.function-definition,
+.token.class-name {
+  color: #82aaff;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #f78c6c;
+}
+
+.token.macro.property {
+  color: #82aaff;
+}
+
+/* Light theme syntax highlighting */
+html[data-theme="light"] .token.comment,
+html[data-theme="light"] .token.prolog,
+html[data-theme="light"] .token.doctype,
+html[data-theme="light"] .token.cdata {
+  color: #708090;
+}
+
+html[data-theme="light"] .token.punctuation {
+  color: #999;
+}
+
+html[data-theme="light"] .token.property,
+html[data-theme="light"] .token.tag,
+html[data-theme="light"] .token.boolean,
+html[data-theme="light"] .token.number,
+html[data-theme="light"] .token.constant,
+html[data-theme="light"] .token.symbol,
+html[data-theme="light"] .token.deleted {
+  color: #905;
+}
+
+html[data-theme="light"] .token.selector,
+html[data-theme="light"] .token.attr-name,
+html[data-theme="light"] .token.string,
+html[data-theme="light"] .token.char,
+html[data-theme="light"] .token.builtin,
+html[data-theme="light"] .token.inserted {
+  color: #690;
+}
+
+html[data-theme="light"] .token.operator,
+html[data-theme="light"] .token.entity,
+html[data-theme="light"] .token.url,
+html[data-theme="light"] .language-css .token.string,
+html[data-theme="light"] .style .token.string {
+  color: #9a6e3a;
+}
+
+html[data-theme="light"] .token.atrule,
+html[data-theme="light"] .token.attr-value,
+html[data-theme="light"] .token.keyword {
+  color: #07a;
+}
+
+html[data-theme="light"] .token.function,
+html[data-theme="light"] .token.function-definition,
+html[data-theme="light"] .token.class-name {
+  color: #dd4a68;
+}
+
+html[data-theme="light"] .token.regex,
+html[data-theme="light"] .token.important,
+html[data-theme="light"] .token.variable {
+  color: #e90;
+}
+
+html[data-theme="light"] .token.macro.property {
+  color: #dd4a68;
+}
+
+blockquote {
+  border-left: 3px solid var(--edge);
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
+  color: var(--muted);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--edge);
+  margin: 2rem 0;
+}
+
+#background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.site-header,
+.site-footer,
+.content {
+  position: relative;
+  z-index: 1;
+}

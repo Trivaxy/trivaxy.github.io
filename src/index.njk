@@ -1,0 +1,28 @@
+---
+layout: layouts/base.njk
+title: Home
+---
+
+
+
+<section>
+  <h1>Psst, bored?</h1>
+  <p>Maybe my ramblings can help with that.</p>
+  
+  </section>
+
+<section>
+  <h2>Posts</h2>
+  <ul>
+    {% for post in collections.posts %}
+    <li>
+  <a href="{{ post.url }}">{{ post.data.title }}</a>
+  {% if post.date %}<small>— {{ post.date.toISOString().slice(0,10) }}</small>{% endif %}
+    </li>
+    {% else %}
+      <li><em>No posts yet.</em></li>
+    {% endfor %}
+  </ul>
+</section>
+
+

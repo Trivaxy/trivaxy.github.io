@@ -1,0 +1,32 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Eleventy Serve",
+			"type": "shell",
+			"command": "npx @11ty/eleventy --serve",
+			"args": [],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Eleventy Serve",
+			"type": "shell",
+			"command": "npx @11ty/eleventy --serve",
+			"args": [],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Eleventy Serve",
+			"type": "shell",
+			"command": "npx @11ty/eleventy --serve",
+			"args": [],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

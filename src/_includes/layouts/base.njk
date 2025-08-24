@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  {% raw %}
+  <script>
+  (function() {
+  // Function to determine the theme without delay
+  function getTheme() {
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved) return saved;
+    } catch (e) {} // localStorage might be disabled
+    
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDark ? 'dark' : 'light';
+  }
+
+  const theme = getTheme();
+  const root = document.documentElement;
+  
+  // Set the data-theme attribute IMMEDIATELY
+  root.setAttribute('data-theme', theme);
+})();
+  </script>
+  {% endraw %}
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-rust.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-bash.min.js"></script>
+  <!-- No default theme - we'll use our custom CSS -->
+  <title>{{ title or site.title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/styles.css" />
+  <noscript><style>.theme-toggle{display:none}</style></noscript>
+  {% if head %}{{ head | safe }}{% endif %}
+  </head>
+<body>
+  <canvas id="background"></canvas>
+  <header class="site-header">
+  <a class="site-title" href="/">Home</a>
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">◐</button>
+  </header>
+  <main class="content">
+    {{ content | safe }}
+  </main>
+  <footer class="site-footer">
+    <small>© 2025 Trivaxy</small>
+  </footer>
+  <script src="https://twgljs.org/dist/4.x/twgl-full.min.js"></script>
+  <script src="/assets/game-of-life.js"></script>
+  <script>
+  const btn = document.getElementById('theme-toggle');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const el = document.documentElement;
+      const next = el.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      el.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    });
+  }
+  </script>
+</body>
+</html>

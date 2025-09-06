@@ -299,3 +299,42 @@ hr {
   position: relative;
   z-index: 1;
 }
+
+/* Header actions layout and spacing for multiple toggles */
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Fallback spacing if gap isn't supported */
+.theme-toggle + .theme-toggle {
+  margin-left: 0.5rem;
+}
+
+/* Ensure body fills viewport so base background shows when canvas is hidden */
+body {
+  min-height: 100vh;
+}
+
+/* Flat background when simulation is disabled */
+html[data-sim="off"][data-theme="dark"] body {
+  background: #000000;
+}
+
+html[data-sim="off"][data-theme="light"] body {
+  background: #ffffff;
+}
+
+/* Explicit default when simulation is enabled (keeps softened look) */
+html[data-sim="on"] body {
+  background: var(--overlay);
+}
+
+/* When simulation is OFF, remove overlay from content areas so the flat body color shows */
+html[data-sim="off"] .site-header,
+html[data-sim="off"] .site-footer,
+html[data-sim="off"] .content {
+  background: transparent;
+  box-shadow: none;
+}

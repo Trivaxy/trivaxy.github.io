@@ -44,7 +44,10 @@
   <canvas id="background"></canvas>
   <header class="site-header">
   <a class="site-title" href="/">Home</a>
+  <div class="header-actions">
+    <button id="sim-toggle" class="theme-toggle" aria-label="Toggle simulation" aria-pressed="true">⧉</button>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">◐</button>
+  </div>
   </header>
   <main class="content">
     {{ content | safe }}
@@ -55,13 +58,37 @@
   <script src="https://twgljs.org/dist/4.x/twgl-full.min.js"></script>
   <script src="/assets/game-of-life.js"></script>
   <script>
-  const btn = document.getElementById('theme-toggle');
-  if (btn) {
-    btn.addEventListener('click', () => {
+  // Theme toggle
+  const themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
       const el = document.documentElement;
       const next = el.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       el.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
+      try { localStorage.setItem('theme', next); } catch (e) {}
+    });
+  }
+
+  // Simulation toggle
+  const simBtn = document.getElementById('sim-toggle');
+  if (simBtn && window.GOL) {
+    // Initialize button state based on current running state
+    const setSimUi = () => {
+      const running = window.GOL.isRunning();
+      simBtn.setAttribute('aria-pressed', running ? 'true' : 'false');
+      // Reflect state with glyph
+      simBtn.textContent = running ? '⏸' : '▶';
+    };
+    setSimUi();
+
+    simBtn.addEventListener('click', () => {
+      const running = window.GOL.isRunning();
+      if (running) {
+        window.GOL.stop();
+      } else {
+        window.GOL.start();
+      }
+      setSimUi();
     });
   }
   </script>

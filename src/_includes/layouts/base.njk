@@ -44,12 +44,12 @@
   </head>
 <body>
   <canvas id="background"></canvas>
-  <header class="site-header">
-  <a class="site-title" href="/">Home</a>
-  <div class="header-actions">
+  <div class="fixed-controls">
     <button id="sim-toggle" class="theme-toggle" aria-label="Toggle simulation" aria-pressed="true">⧉</button>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">◐</button>
   </div>
+  <header class="site-header">
+  <a class="site-title" href="/">Home</a>
   </header>
   <main class="content">
     {{ content | safe }}

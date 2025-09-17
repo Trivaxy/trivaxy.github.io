@@ -300,11 +300,19 @@ hr {
   z-index: 1;
 }
 
-/* Header actions layout and spacing for multiple toggles */
-.header-actions {
-  display: inline-flex;
+/* Fixed controls container for theme and simulation toggles */
+.fixed-controls {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
+  z-index: 1000;
+  background: var(--overlay);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--edge);
 }
 
 /* Fallback spacing if gap isn't supported */

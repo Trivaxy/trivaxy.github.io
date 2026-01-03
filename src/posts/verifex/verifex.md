@@ -1,6 +1,7 @@
 ---
 layout: layouts/base.njk
 title: Accidentally building a dependently-typed language with Z3
+description: A deep dive on Verifex, a programming language powered by an SMT solver and prayers
 ---
 
 Back in September, I finally graduated university. After four years of the most mind-numbing, *boring* lectures I've experienced (except for my algorithms class), I'm free.

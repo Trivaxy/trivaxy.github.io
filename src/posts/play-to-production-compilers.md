@@ -314,4 +314,17 @@ let b = (10 + 9];
 replace with ) ^  
 ```
 
-The examples are simple, but you get the point. Phrase-level recovery just means "do your best to fix the input".
+The examples are simple, but you get the point. Phrase-level recovery just means "do your best to fix the input". Now, erroneous nodes still have a chance at being part of your AST, which means they get all the benefit of being visited by later passes.
+
+Implementing phrase-level recovery depends on even more fine-tuning than token synchronization, and if you're not careful, your whole parser is going to end up riddled with just as much recovery logic as actual parsing logic.
+
+So, let's keep it simple, and I'll show you an approach that achieves this recovery while also separating concerns.
+
+I'm going to assume just a few things:
+- Our `Token` type has a `start`/`end` and a `ty` enum to identify it
+- We have a `TokenStream` type that has two methods:
+  - `current()`, which returns the current token in the stream
+  - `peek()`, which looks at the next token in the stream without moving to it
+  - `next()`, which moves to the next token in the stream and returns it
+- We have the `AstNode` and `AstNodeKind` types I showed earlier
+

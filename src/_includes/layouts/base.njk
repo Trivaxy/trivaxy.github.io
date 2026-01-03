@@ -32,6 +32,7 @@
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-rust.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-python.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-csharp.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-bash.min.js"></script>
   <!-- No default theme - we'll use our custom CSS -->
   <title>{{ title or site.title }}</title>
@@ -44,16 +45,35 @@
   </head>
 <body>
   <canvas id="background"></canvas>
-  <div class="fixed-controls">
-    <button id="sim-toggle" class="theme-toggle" aria-label="Toggle simulation" aria-pressed="true">⧉</button>
-    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">◐</button>
+    <div class="fixed-controls">
+    <button id="sim-toggle" class="theme-toggle" aria-label="Toggle simulation" aria-pressed="true">Pause</button>
+    <button id="sim-mode-toggle" class="theme-toggle" aria-label="Toggle simulation mode">Life</button>
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">Theme</button>
   </div>
   <header class="site-header">
-  <a class="site-title" href="/">Home</a>
+  <nav>
+    <a class="site-title" href="/">Home</a>
+    <a class="site-title" href="/about/">About</a>
+    <a class="site-title" href="/contact/">Contact</a>
+  </nav>
   </header>
-  <main class="content">
-    {{ content | safe }}
-  </main>
+  {# Extract headings for TOC #}
+  {% set tocContent = content | tocExtract %}
+  <div class="page-layout">
+    {% if tocContent %}
+    <aside class="toc">
+      <nav class="toc-nav">
+        <h2 class="toc-title">Contents</h2>
+        <div class="toc-content">
+          {{ tocContent | safe }}
+        </div>
+      </nav>
+    </aside>
+    {% endif %}
+    <main class="content">
+      {{ content | safe }}
+    </main>
+  </div>
   <footer class="site-footer">
     <small>© 2025 Trivaxy</small>
   </footer>
@@ -71,28 +91,58 @@
     });
   }
 
-  // Simulation toggle
+  // Simulation controls
   const simBtn = document.getElementById('sim-toggle');
-  if (simBtn && window.GOL) {
-    // Initialize button state based on current running state
-    const setSimUi = () => {
+  const modeBtn = document.getElementById('sim-mode-toggle');
+  if (window.GOL) {
+    const updateSimUi = () => {
+      if (!simBtn) return;
       const running = window.GOL.isRunning();
       simBtn.setAttribute('aria-pressed', running ? 'true' : 'false');
-      // Reflect state with glyph
-      simBtn.textContent = running ? '⏸' : '▶';
+      simBtn.textContent = running ? 'Pause' : 'Play';
     };
-    setSimUi();
 
-    simBtn.addEventListener('click', () => {
-      const running = window.GOL.isRunning();
-      if (running) {
-        window.GOL.stop();
+    const updateModeUi = () => {
+      if (!modeBtn) return;
+      const mode = window.GOL.getMode ? window.GOL.getMode() : 'life';
+      if (mode === 'ant') {
+        modeBtn.textContent = 'Ant';
+        modeBtn.setAttribute('aria-label', 'Switch to Game of Life simulation');
       } else {
-        window.GOL.start();
+        modeBtn.textContent = 'Life';
+        modeBtn.setAttribute('aria-label', "Switch to Langton's Ant simulation");
       }
-      setSimUi();
-    });
+    };
+
+    updateSimUi();
+    updateModeUi();
+
+    if (simBtn) {
+      simBtn.addEventListener('click', () => {
+        if (window.GOL.isRunning()) {
+          window.GOL.stop();
+        } else {
+          window.GOL.start();
+        }
+        updateSimUi();
+      });
+    }
+
+    if (modeBtn && window.GOL.setMode) {
+      modeBtn.addEventListener('click', () => {
+        const current = window.GOL.getMode ? window.GOL.getMode() : 'life';
+        const next = current === 'ant' ? 'life' : 'ant';
+        const wasRunning = window.GOL.isRunning();
+        window.GOL.setMode(next);
+        if (wasRunning && !window.GOL.isRunning()) {
+          window.GOL.start();
+        }
+        updateModeUi();
+        updateSimUi();
+      });
+    }
   }
   </script>
 </body>
 </html>
+

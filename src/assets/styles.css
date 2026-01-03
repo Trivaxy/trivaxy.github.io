@@ -91,6 +91,11 @@ a:hover {
   box-shadow: none;
 }
 
+.site-header nav {
+  display: flex;
+  gap: 1.5rem;
+}
+
 .site-footer {
   background: var(--overlay);
   color: var(--fg);
@@ -98,7 +103,7 @@ a:hover {
 }
 
 .content {
-  max-width: 70ch;
+  max-width: 80ch;
   margin: 0 auto;
   padding: 1.5rem 1rem 4rem;
   position: relative;
@@ -107,6 +112,13 @@ a:hover {
   color: var(--fg);
   border-radius: 0;
   box-shadow: none;
+}
+
+.content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem auto;
 }
 
 .theme-toggle {
@@ -345,4 +357,99 @@ html[data-sim="off"] .site-footer,
 html[data-sim="off"] .content {
   background: transparent;
   box-shadow: none;
+}
+
+/* Table of Contents */
+.page-layout {
+  max-width: 80ch;
+  margin: 0 auto;
+  padding: 0 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.toc {
+  background: var(--overlay);
+  border: 1px solid var(--edge);
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.toc-title {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--fg);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc-item {
+  margin: 0.5rem 0;
+}
+
+.toc-item a {
+  color: var(--link);
+  text-decoration: none;
+  font-size: 0.9rem;
+  display: block;
+  transition: color 0.2s;
+}
+
+.toc-item a:hover {
+  color: var(--fg);
+  text-decoration: underline;
+}
+
+/* Indent h3 items */
+.toc-level-3 {
+  margin-left: 1.5rem;
+  font-size: 0.85rem;
+}
+
+/* Desktop: sticky sidebar on left */
+@media (min-width: 769px) {
+  .page-layout {
+    position: relative;
+    max-width: 80ch;
+    margin: 0 auto;
+  }
+
+  .toc {
+    position: fixed;
+    left: max(1rem, calc(50% - 40ch - 250px - 2rem));
+    top: 1rem;
+    width: 250px;
+    margin-bottom: 0;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+
+  .content {
+    padding: 1.5rem 0 4rem;
+    margin: 0;
+    max-width: 80ch;
+  }
+}
+
+/* Mobile: TOC at top, not sticky */
+@media (max-width: 768px) {
+  .page-layout {
+    display: block;
+  }
+
+  .toc {
+    position: static;
+  }
+
+  .content {
+    padding: 1.5rem 0 4rem;
+    margin: 0;
+  }
 }

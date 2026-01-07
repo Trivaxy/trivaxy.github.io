@@ -1050,7 +1050,7 @@ a is Real
 !(a >= 0) // (in other words a < 0)
 ```
 
-Now we ask the solver to check. And it returns `SAT` - which means that our fact, `a is Real`, does not necessitate that `a >= 0`. Thus Verifex throws an error because the assigment of `Real` to `NonNegativeReal` in this context isn't safe.
+Now we ask the solver to check. And it returns `SAT` - which means that our fact, `a is Real`, does not necessitate that `a >= 0`. Thus Verifex throws an error because the assignment of `Real` to `NonNegativeReal` in this context isn't safe.
 
 This whole trick is exactly what Verifex uses for practically everything, aside from *trivial* cases, which we'll talk about in a second.
 
@@ -1311,7 +1311,7 @@ x is an Any
 x = IntAsAny(4)
 ```
 
-All we have to do is define a 'boxing' function like that every time we try to convert a `T` to an `Any`. Remember, because `Any` is uninterpreted, Z3 can't really reason about statements like `IntAsAny(4) == IntAsAny(5)` because `IntAsAny` is *also* an unintepreted function with no axioms. The only thing it knows is that `IntAsAny(i) == IntAsAny(i)`.
+All we have to do is define a 'boxing' function like that every time we try to convert a `T` to an `Any`. Remember, because `Any` is uninterpreted, Z3 can't really reason about statements like `IntAsAny(4) == IntAsAny(5)` because `IntAsAny` is *also* an uninterpreted function with no axioms. The only thing it knows is that `IntAsAny(i) == IntAsAny(i)`.
 
 ### Archetypes are thankfully simple
 
@@ -1424,7 +1424,7 @@ This was bad, because it meant Verifex was **underapproximating** the program.
 
 Here's the thing. You can never truly capture a program's behavior without running it (again, halting problem™). However, you can *approximate* a program's behavior.
 
-Forget Verifex for a second, we need to trod over to the land of CS for a moment. Worry not, I'll keep it intuitive.
+Forget Verifex for a second, we need to tread over to the land of CS for a moment. Worry not, I'll keep it intuitive.
 
 Suppose we have an arbitrary program, which we'll call `P`. Let's also suppose we have the *set* of all possible behaviors of a program, which we'll call `B(P)`. Behavior here refers to a *possible run* of the program, or an execution path with certain inputs and outputs. So `B(P)` pretty much refers to all the possible executions of a program.
 

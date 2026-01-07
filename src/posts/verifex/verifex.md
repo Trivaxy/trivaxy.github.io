@@ -32,6 +32,8 @@ Here's exactly what we're going to go through, in order:
 
 If none of these points sound familiar, read anyways! I explain everything. That said, if you *are* familiar (and if you are, you might be one of the scary pedants), please go easy. I tried to keep this writeup as accessible as possible.
 
+Oh, and there's a [web playground](https://trivaxy.github.io/VerifexPad).
+
 Hope you enjoy!
 
 ## The Language
@@ -433,11 +435,11 @@ struct Circle {
     }
 
     fn perimeter() -> NonNegativeReal {
-        return 2.0 * Math.PI * radius;
+        return 2.0 * 3.14 * radius;
     } 
 
     fn area() -> NonNegativeReal {
-        return Math.PI * radius * radius;
+        return 3.14 * radius * radius;
     }
 }
 
@@ -1513,6 +1515,7 @@ Let's take an example like this:
 archetype Shape {
     sides: PositiveInt,
     fn area() -> PositiveReal
+}
 ```
 
 Intuitively, you might think that this could just correspond to an interface like this:
@@ -1640,9 +1643,7 @@ Short answer: painfully. Also, the values on the stack might not be unmanaged, l
 
 Adapter instances are reference types. The runtime does *not* allow you to obtain pointers to a reference type's fields or methods, not unless you're willing to do a lot of seriously 'here be dragons' dark magic, which means it's not really an option for us. The value becomes opaque.
 
-Not all hope is lost, though. There's one trick we can employ, and it relies on one very specific instruction in the .NET runtime.
-
-First, we need to change our adapter approach. Instead of creating an adapter interface for every class, we're going to define this little struct:
+What if we try changing our adapter approach? Instead of creating an adapter interface for every class, we're going to define this little struct:
 ```cs
 unsafe struct ShapeData
 {
@@ -1667,7 +1668,7 @@ Our `ShapeData` will just point to a value that's been freed when it goes out of
 
 To be frank, I don't think there's a clean solution to this that allows things to be as performant as possible without weird restrictions like "archetypes can't be field types". Maybe there *is*, but it feels counter-productive to keep trying to make Verifex's type system play nice with the .NET runtime.
 
-The square peg does not go into the circle's hole.
+The square peg does not go into the circle hole.
 
 The most obvious way out I see is to literally just allocate a huge chunk of memory and make our own heap. At that point, it comes off as ridiculous.
 
@@ -1677,7 +1678,7 @@ The most obvious way out I see is to literally just allocate a huge chunk of mem
 
 ## In The End
 
-For my first blog post, this was *damn long*. Still, I do hope you found at least something useful here. The two weeks I spent on this language taught me a lot. I'm really not exaggerating when I say this language is held together by duct tape, but it works!
+For my first blog post, this was *damn long*. Still, I do hope you found at least something useful here. The two weeks I spent on this language taught me a lot. I'm really not exaggerating when I say it's all held together by duct tape, but it works!
 
 I'm not sure if I plan on taking this language anywhere, but there's a couple of things I'd love to tackle first, if I ever do:
 1. *Contextual refined types*. Right now, refined types can only exist in a vacuum where `value` is the only thing they can access. However, real world logic often depends on several values that have a relationship with each other. I'd like for something like this to exist:
@@ -1700,14 +1701,14 @@ This is totally something I can add. Just ran out of time. It'd help model corre
 ```rust
 type PositiveReals = Real[] where all > 0.0;
 ```
-so you can enforce conditions on every element in a collection.
+so you can enforce conditions on every element in a collection. You can already do this via refining over `Real` and then using `PositiveReal[]`, but a shorthand is nice. Having existential quantifiers however would be an expressivity boost.
 
 3. Generics
 4. *Ergonomics*. We don't even have `for` loops, only `while`. It'd be nice to even have a `foreach` equivalent. As well as shorthand syntax like `i += 1` or `fn foo() => print("Hello, World!");`.
 5. Lots, and I mean *lots* more tests. The compiler is severely undertested and kind of runs on hopes and prayers. I promise it was just a time issue. Worst case, I find scenarios where it underapproximates programs. Does anyone know good ways to test compilers well?
 6. Divorce .NET immediately. I don't want to target it anymore, it wasn't really a great idea in the first place. Perhaps it might be time to work with the abyss that is LLVM... ~~or just transpile to C~~
-7. Right now, we only ask the solver to check satisfiability. But it can often find counter-examples that show us why the program might be incorrect. Huge waste not to make use of that!
-8. Clean up the code. Actually, I'd probably rewrite Verifex as a whole first. Not necessarily in Rust but *probably* in Rust.
+7. Right now, we only ask the solver to check satisfiability. But it can often find *concrete* counter-examples that show us why the program might be incorrect. Huge waste not to make use of that! This'd allow the compiler to tell you 'this assignment isn't safe when `x = 5`' instead of 'it isn't safe'
+8. Clean up the code. Actually, I'd probably rewrite Verifex as a whole first.
 9. Figure out what I want to do with the `Any` type
 
 Oh, I already said this, but you can try Verifex yourself! I made a [web playground](https://trivaxy.github.io/VerifexPad). Please don't try to crash the server or escalate privileges <3

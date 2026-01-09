@@ -1672,6 +1672,8 @@ The square peg does not go into the circle hole.
 
 The most obvious way out I see is to literally just allocate a huge chunk of memory and make our own heap. At that point, it comes off as ridiculous.
 
+Some of you might have been thinking of pulling out good ol' `System.Reflection.Emit` and just generating everything we need at runtime. Thing is, chanting that namespace at 3AM in front of a mirror in the dark causes something... native and ahead-of-time to manifest and attack. It took my friend.
+
 'Alright then, what solution did you go with, Trivaxy?'
 
 ~~object and Dictionary<string, object>. i wont explain further~~

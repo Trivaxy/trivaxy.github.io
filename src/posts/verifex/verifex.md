@@ -8,9 +8,7 @@ Back in September, I finally graduated university. After four years of the most 
 
 But before I could be granted that freedom, I needed to work on a graduation project. For a software engineering degree (which is what I have), it was mandatory for students to form groups of 2-3 to work on some kind of application or system. You'd be responsible for gathering requirements to create the Software Requirement Specification, then the Software Design Specification (which involves a dozen diagrams), then the Software Testing Specification, and finally the actual implementation of your project.
 
-It was a big enough workload that graduation projects were often worked on over the course of *two* semesters. And in my case, I was the only one crazy enough from the graduating class to do it solo rather than form a group.
-
-Not that I didn't want to work with others. I wanted to challenge myself and produce something *useful*, or at least have a tiny bit of research value. 95% of the graduation projects were just yet another social media clone, yet another mobile app for renting XYZ service, and so on. I didn't really find anyone else with the skillset or drive I was looking for.
+It was a big enough workload that graduation projects were often worked on over the course of *two* semesters. And in my case, I was the only one crazy enough from the graduating class to do it solo rather than form a group. Not that I didn't want to work with others. I wanted to challenge myself and produce something *useful*, or at least have a tiny bit of research value. 95% of the graduation projects were just yet another social media clone, yet another mobile app for renting XYZ service, and so on. I didn't really find anyone else with the skillset or drive I was looking for.
 
 Wanting to set myself apart from the crowd, I thought to myself: 'what if I make a programming language?'. I'm thankful my supervisor actually *allowed* me to work on my own, let alone on something that's so unlike most other graduation projects the faculty sees.
 
@@ -74,7 +72,9 @@ fn main() {
 
 The language only has a few primitive types, which are `Int`, `Real`, `Bool`, and `String` (we'll talk about why `String` is considered primitive, don't worry).
 
-You've also got `if/else` statements, and `while` loops.
+For control flow, you've also got `if/else` statements and `while` loops.
+
+The more interesting features are C-like `struct`s (with Go-like embedding), *archetypes* (think interfaces that specify methods and fields), *refined types* and *maybe types*. We'll get to them in the next section.
 
 Knowing that, let's try a simple task. We want to implement a utility function that receives an array of numbers, and returns the average.
 ```rust
@@ -125,26 +125,30 @@ Now the compiler lets it slide. It knows that after the `if` guard, `#values` ca
 
 But we've introduced another issue that's arguably just as bad, if not *worse*, than potential division by zero: implicit, assumed behavior. If this function is part of a library, or a codebase where many developers might call it, every single one of them must internalize that `average` will return `0.0` if the passed array is empty. But:
 - Humans are prone to forgetting and mistakes, no matter what anyone believes
-- This *expands* the error surface, because calling code must either ensure the passed array is non-empty or check if the result is 0
+- This *expands* the error surface, because calling code must *remember* to ensure the passed array is non-empty
 - `0.0` is also not a fundamentally well-defined result for taking the average of... nothing. An average over an empty array is mathematically undefined
 - If this is a really hot function, that `if` guard might piss off your CPU's branch predictor
 
-In software engineering, this violates something known as **Design by Contract**, or DbC for short. DbC operates on three rules:
+In software engineering, this violates something known as **Design by Contract**, or DbC for short. It's a style of programming that operates on three rules:
 1. The *caller* needs to enforce *preconditions*, which must be true before calling a function
 2. The *callee* needs to enforce *postconditions*, which must be true when the function returns
 3. *Invariants* are facts that must always be true when observed, for example, a certain object's field can never be negative
 
 DbC isn't a new concept. It's a practice that's been around for decades. But enforcement of DbC is often left to the programmer to do manually, and it often happens at runtime, which isn't free. Different languages have different ways of enforcing it. If this was Java, tradition tells you to throw an `IllegalArgumentException` if the array is empty. Which hurts performance, *still* expands the error surface, and because it's a `RuntimeException`, you can't even catch it at compile time. Even if you make a new exception type and place it in the method's signature, the only net effect is you're now spamming `try-catch`.
 
-Verifex takes a different approach via something called Refined Types. The concept behind them, as I learned later, was called Dependent Types - but the name stuck.
+Verifex takes a different approach via something called Refined Types. The concept behind them, as I learned later, was a bigger idea called Dependent Types - but the name stuck.
 
-Refined Types are essentially a way to encode conditions about data at the type level, or in other words, make the type *depend* on the data values.
+Dependent types are a way of, as the name suggests, making types *depend* on values. Let's imagine for a second that we have some fictional programming language, very much like C# or Java, with generics. Except the type parameters don't have to be types, they can be values! I can write `List<int, 5>` to represent a list of integers with only 5 elements. `List<int, 6>` would be a completely different type. A function that appends one list to another can have a signature like `Append(List<T, A>, List<T, B>) -> List<T, A+B>`.
+
+It sounds... strange, but it means your types become capable of expressing guarantees. A type can say that an array is sorted, or that an index is always within bounds, or that a pointer can never be null, or...
+
+The point I'm making here is that dependently typed languages can act as provers. The type system, in a literal sense, performs computation. And this is important, because it means you can prove stated properties about your program at compile time. Look up the **Curry–Howard correspondence** - it's pretty enlightening.
+
+Verifex isn't a *fully* dependently typed language in the same way Idris or Coq are. Instead, it implements something known as *refined* or *liquid* types. Those are approximations of dependent typing. They allow you to attach predicates to types in order to constrict their domain, and this subset of dependent typing is often *decidable*. Full dependent typing means you can run arbitrary computation during type checking, and without guardrails in place, it invites the halting problem.
 
 Let's go back to our function. The original issue that the compiler warned us about is that we might divide by zero due to an empty array. In other words, `average` *only* makes sense if the array is non-empty. So let's just accept any non-empty array:
 ```rust
-type NonEmptyRealArray = Real[] where #value > 0;
-
-fn average(values: NonEmptyRealArray) -> Real {
+fn average(values: Real[] where #value > 0) -> Real {
     mut sum = 0.0;
     mut i = 0;
     while (i < #values) {
@@ -155,11 +159,20 @@ fn average(values: NonEmptyRealArray) -> Real {
 }
 ```
 
-In Verifex, `NonEmptyRealArray` is a **refined type**. A refined type is a type with a condition attached to it that guarantees any piece of data the type represents will satisfy that condition. Within its predicate, `value` is a special placeholder that represents all possible types you are refining over (in this case, `value` would be `Real[]`).
+In Verifex, `Real[] where #value > 0` is a **refined type**. A refined type is a type with a condition attached to it that guarantees any piece of data the type represents will satisfy that condition. Within its predicate, `value` is a special placeholder that represents all possible values you are refining over (in this case, `value` would be `Real[]`).
 
-Thus, `NonEmptyRealArray` is a type that represents any array of real numbers that is not empty.
+Thus, `Real[] where #value > 0` is a type that represents any array of real numbers that is not empty.
 
-Notice that we took out the `if` guard too. And the code compiles! On the surface, it looks like all we did was change the type of the parameter `values` from `Real[]` to `NonEmptyRealArray`. But this change is important: you've now instructed the compiler to guarantee that any array passed to `average` must be non-empty.
+Let's make a type alias for it, since writing it out every time can get cumbersome:
+```rust
+type NonEmptyRealArray = Real[] where #value > 0;
+
+fn average(values: NonEmptyRealArray) -> Real {
+    // same as before
+}
+```
+
+Notice that we took out the `if` guard from the function body. And the code compiles! On the surface, it looks like all we did was change the type of `values` from `Real[]` to `NonEmptyRealArray`. But this change is important: you've now instructed the compiler to guarantee that any array passed to `average` must be non-empty.
 
 In other words, we've introduced the first mechanism of DbC, a **precondition**: `values` must be non-empty, and the *caller* must ensure that this is true.
 
@@ -174,14 +187,14 @@ fn main() {
 ```
 
 ```
-error: parameter 'values' has type 'NonEmptyRealArray', but got 'Real[]'
+error: parameter 'values' has type 'Real[] where #value > 0', but got 'Real[]'
 17 |     average(empty);
    |             ~~~~~
 ```
 
-The compiler is now complaining that `empty`, which is `Real[]`, is not a `NonEmptyRealArray`. Specifically, `#empty <= 0`, which violates the refined type's condition. `vals` on the other hand, is a `Real[]` that satisfies `#vals > 0`, so it's also a `NonEmptyRealArray`.
+The compiler is now complaining that `empty`, which is `Real[]`, violates the refined type's condition because `#empty <= 0`. `vals` on the other hand is a `Real[]` that satisfies it because `#vals > 0`.
 
-This looks like an obvious, 'whatever' example, but consider an example like this. You want to read numbers from the user and calculate their average.
+This looks like an obvious, "whatever" example, but consider an example like this. You want to read numbers from the user and calculate their average.
 ```rust
 fn main() {
     let vals: Real[] = some_user_input();
@@ -210,31 +223,27 @@ Verifex forces you to confront the fact your code may not be correct under your 
 
 Postconditions are also quite easy and useful. Take a simple function like this:
 ```rust
-type NonNegativeReal = Real where value >= 0.0;
-
-fn abs(x: Real) -> NonNegativeReal {
+fn abs(x: Real) -> Real where value >= 0.0 {
     return x;
 }
 ```
 
 The function is syntactically fine but logically *wrong*. The compiler throws an error:
 ```
-error: function 'abs' has return type 'NonNegativeReal', but got 'Real'
+error: function 'abs' has return type 'Real where value >= 0.0', but got 'Real'
 2 |     return x;
   |     ~~~~~~~~
 ```
 
 We're not guaranteeing the postcondition that the returned value can't be negative. However, this works:
 ```rust
-type NonNegativeReal = Real where value >= 0.0;
-
-fn abs(x: Real) -> NonNegativeReal {
+fn abs(x: Real) -> Real where value >= 0.0 {
     if (x < 0.0) { return -x; }
     return x;
 }
 ```
 
-Now, any caller calling `abs` will receive a value guaranteed to be a `NonNegativeReal`, which can be useful if the value needs to be used in contexts that also require that property (such as square roots).
+Now, any caller calling `abs` will receive a value guaranteed to be greater than `0.0`, which can be useful if the value needs to be used in contexts that also require that property (such as d).
 
 ### Maybe Types (well, union types)
 
@@ -288,9 +297,9 @@ This usecase is pretty much analogous to Rust's `Result<T, E>` type. Maybe types
 Consider the following:
 ```rust
 type Port = Int where value > 0 && value < 65536;
-type WellKnownPort  = Int where value > 0     && value < 1024;
+type WellKnownPort = Int where value > 0 && value < 1024;
 type RegisteredPort = Int where value >= 1024 && value < 49152;
-type DynamicPort    = Int where value >= 49152 && value < 65536;
+type DynamicPort = Int where value >= 49152 && value < 65536;
 ```
 
 One important bit about refined types is that they can imply one another. You don't need to verbatim state that a value satisfies some `X` condition to be able to assign it to a refined type. The compiler actively tries to prove those facts indirectly.
@@ -329,7 +338,7 @@ While I don't really use nor have any strong feelings about Go in general, one t
 
 Languages like C#, Java, Python, etc. come with the default paradigm of object-oriented programming, which every developer and their grandma knows intimately. You can certainly write non-OOP code in OOP languages, but then you might as well use something different unless you have ecosystem or platform requirements.
 
-I don't particularly hate OOP. I enjoy it, but *only* in domains where modeling the system via inheritance and objects makes sense. The whole "OOP vs Literally Every Other Paradigm vs FP" is a discussion for another day.
+I don't particularly hate OOP. I enjoy it, but *only* in domains where modeling the system via inheritance and objects makes sense. The whole "OOP vs FP vs Literally Every Other Paradigm" is a discussion for another day.
 
 Verifex doesn't really have OOP. At least, not in the traditional sense. The way it models objects is very akin to Go, because I enjoy composition, and I wanted to implement it out of interest.
 
@@ -799,13 +808,13 @@ Before we can go any further, we need to talk about what an **SMT solver** is.
 
 SMT, short for Satisfiability Modulo Theories, is a class of decision problems where given a set of logical constraints and axioms/facts, you must deduce whether or not they are all *satisfiable* with respect to a theory.
 
-Sounds like jargon, but essentially, SMT is just a generalization over classic SAT. The latter is concerned with deciding if a boolean expression is satisfiable. SMT is about booleans, numbers, arithmetic, strings, functions, and a ton of other stuff.
+Sounds like jargon, but essentially, SMT is just a generalization over classic SAT. The latter is concerned with deciding if a boolean expression is satisfiable, while SMT is about booleans, numbers, arithmetic, strings, functions, and a ton of other stuff.
 
 And, just like with SAT and SAT solvers, SMT has SMT solvers! The most well known SMT solvers would probably be Z3 and CVC5. Verifex uses **Z3** at its core to solve instances of SMT to prove your program is correct.
 
 (Fun fact: most SMT solvers actually utilize SAT solvers under the hood)
 
-SMT solvers essentially take in a series of *assertions*, then check if all of these assertions together can be satisfiable.
+What SMT solvers do is essentially take in a series of *assertions*, then check if all of these assertions together can be satisfiable.
 
 Here's an example:
 ```
@@ -814,9 +823,12 @@ y > 7
 x + y < 10
 ```
 
-You assert that you have a variable `x` which is greater than 3, another variable `y` which is greater than 7, then assert that `x + y < 10`.
+You assert that you have a variable `x` which is greater than 3, another variable `y` which is greater than 7, then assert that `x + y < 10`. The solver has to check if the conjunction (`AND`) of all those assertions can be true:
+```
+x > 3 AND y > 7 AND x + y < 10
+```
 
-Logically, if `x > 3` and `y > 7`, then adding `x + y` will never give a number less than 10. Thus the SMT solver will return that this problem is **UNSAT**, short for **unsatisfiable**. There exist no values for x and y that can make every assertion true.
+Logically, if `x > 3` and `y > 7`, then adding `x + y` will never give a number less than 10. Thus the SMT solver will return that this problem is **UNSAT**, short for **unsatisfiable**. There exist no values for `x` and `y` that can make every assertion true.
 
 By contrast, something like:
 ```
@@ -825,15 +837,15 @@ y > 1
 x + y > 0
 ```
 
-Would be **SAT**, or **satisfiable**, because there do exist values for x and y such that `x + y > 0`.
+Would be **SAT**, or **satisfiable**, because there do exist values for `x` and `y` such that every assertion is true.
 
 These were really simple examples, but they showcase what SMT solvers do. They're logic engines. They can even produce models or counter-examples that show why a given set of assertions is satisfiable or not.
 
-The *whole* deal with Verifex is figuring out how to transform the program into assertions that Z3 can check. Which is what we'll get into.
+The *whole* deal with Verifex is figuring out how to transform the program into assertions that Z3 can check, which is what we'll get into.
 
 ### (lisp jumpscare)
 
-Worth noting that there's a universal standard that SMT solvers 'speak', so to say. It's called SMT-LIB.
+It's worth noting that there's a universal standard that SMT solvers 'speak', so to say. It's called SMT-LIB.
 If we want to encode `x < 3, y > 1, x + y > 0` as above, then in SMT-LIB it looks like this:
 ```
 (set-logic QF_LIA)
@@ -846,15 +858,17 @@ If we want to encode `x < 3, y > 1, x + y > 0` as above, then in SMT-LIB it look
 (assert (> (+ x y) 0))
 ```
 
-Yes. It's very lisp-like. We essentially declare that `x` and `y` are integers, then follow with the assertions we want.
+~~okay, phew, it's not actually lisp, just s-expressions~~
 
-SMT-LIB is to solvers what SQL is to relational databases, just without the million dialects. That said, we won't work with SMT-LIB directly here, since solvers expose APIs we can use directly in our code.
+We essentially declare that `x` and `y` are integers, then follow with the assertions we want.
 
-For the sake of simplicity though, I'll use shorthand 'obvious' syntax rather than throwing SMT-LIB at you, just like our examples above.
+SMT-LIB is to solvers what SQL is to relational databases, just without the million dialects (solvers can still extend SMT-LIB though). That said, the compiler doesn't emit SMT-LIB directly, since solvers expose APIs we can use directly.
+
+For the sake of simplicity though, I'll use shorthand 'obvious' syntax rather than throwing SMT-LIB at you, just like our examples above. Call it pseudo-SMT.
 
 ### Variables and values
 
-One the very first things we need to address is how values in Verifex map to values that Z3 can understand.
+One of the very first things we need to address is how values in Verifex map to values that Z3 can understand.
 
 In most SMT solvers, we do have a distinction between types of values - although we call them sorts in SMT solvers.
 
@@ -966,18 +980,14 @@ fn random() -> Real { ... }
 
 fn main() {
     let a = random();
-    if (a < 0.0) { return; }
-
     let b = sqrt(a);
     print(b);
 }
 ```
 
-Examining the CFG for `main`, it's just a linear execution:
-
 ![Diagram of a control flow graph](./images/cfg2.jpg)
 
-Yet, Verifex flags this as problematic. Makes sense, since `a` is a `Real` number, and not guaranteed to be `NonNegativeReal` - but how does the solver confirm this?
+Verifex flags this as problematic. Makes sense, since `a` is a `Real` number, and not guaranteed to be `NonNegativeReal` - but how does the solver confirm this?
 
 When we invoke the `sqrt` function and try sending `a` as an argument to a parameter that expects `NonNegativeReal`, we need to check that the refined type's condition holds. The compiler fundamentally has to answer this question: does all the current knowledge about `a` *imply* that it is a `NonNegativeReal`?
 
@@ -1017,7 +1027,7 @@ y > 7
 x >= y
 ```
 
-If we ask the solver to check this, it will *always* return `UNSAT`. What's happening here is we're asking `x < 3 AND y > 7 AND x >= y`. There are no values for `x` and `y` that can satisfy the facts *and* the negation of the conclusion. Which means the facts *must* imply the conclusion (since the facts are correct).
+If we ask the solver to check this, it will *always* return `UNSAT`. There are no values for `x` and `y` that can satisfy the facts *and* the negation of the conclusion. Which means the facts *must* imply the conclusion (since the facts are correct).
 
 Here's an analogy: in the flawed approach, we basically asked:
 ```
@@ -1052,7 +1062,7 @@ a is Real
 
 Now we ask the solver to check. And it returns `SAT` - which means that our fact, `a is Real`, does not necessitate that `a >= 0`. Thus Verifex throws an error because the assignment of `Real` to `NonNegativeReal` in this context isn't safe.
 
-This whole trick is exactly what Verifex uses for practically everything, aside from *trivial* cases, which we'll talk about in a second.
+This whole trick is exactly what Verifex uses for practically everything, aside from *trivial* cases.
 
 Let's fix our example:
 ```rust
@@ -1069,7 +1079,7 @@ The CFG for that snippet looks like this:
 
 ![Diagram of control flow graph](./images/cfg3.jpg)
 
-Now, when the solver takes the `a >= 0` path and reaches the `sqrt` call, it knows the following:
+Now, when the compiler takes the `a >= 0` path and reaches the `sqrt` call, the solver knows the following:
 ```
 a is Real
 a >= 0
@@ -1097,7 +1107,7 @@ x > 0
 
 Nothing special here. Just that instead of saying `x is Real` only, we also assert the refined type's constraint as a fact.
 
-Overall, the compiler has to traverse every possible execution path to check for correctness. If there is at least *one* path where some condition is violated, then you get an error.
+Generally, the compiler has to traverse every path in the CFG from the entry to the exit block to check for correctness. If there is at least *one* path where some condition is violated, then you get an error.
 
 ### Lowering structs to math
 
@@ -1126,7 +1136,7 @@ When the compiler comes across `Point`, it essentially generates the following S
 
 What's happening here might not be obvious, so let's break it down.
 
-Suppose we have a function which we'll call `mk-point(x, y)`. This is our constructor: it takes in two real values (`x` and `y`) and returns a value of the new sort we just created, `Point`. We'll also create two functions, `x(p)` and `y(p)`, which take in a `Point` and return a `Real`. Finally, we also have a function called `is-mk-point(p)`, which takes in a `Point` and returns a `Bool`.
+Suppose we have a function in Z3 which we'll call `mk-point(x, y)`. That's our constructor: it takes in two real values (`x` and `y`) and returns a value of the new sort we just created, `Point`. We'll also create two functions, `x(p)` and `y(p)`, which take in a `Point` and return a `Real`. Finally, we also have a function called `is-mk-point(p)`, which takes in a `Point` and returns a `Bool`.
 
 That's still not super useful, though. What Z3 sees are entirely opaque functions like `mk-point` that says `Real, Real -> Point`. The function is defined over its domain and... that's it. We haven't said anything more.
 
@@ -1161,7 +1171,7 @@ With this, we now know how structs map down to something Z3 can understand and r
 ```rust
 let a: NonNegativeReal = foo();
 let p = Point { x: a, y: a };
-let j = Point { x: p.x - 2, p.y - 2 };
+let j = Point { x: p.x - 2, y: p.y - 2 };
 ```
 
 Would map (in our pseudo-smt) to:
@@ -1197,7 +1207,7 @@ Let's look at what Z3 does for us:
 2. We also get accessor functions for both variants: `intVal(m)` and `boolVal(m)`. Both accept a `MaybeIntOrBool` and return `Int` and `Bool` respectively.
 3. Remember the `is-mk-point` function from the `Point` example? Over there, there's only one constructor/variant, so it wasn't really useful. Over here is where it's needed. Z3 provides us with two functions: `is-MkMaybeInt(m)` and `is-MkMaybeBool(m)`, both accept `MaybeIntOrBool` and return a `Bool`. These functions are called *recognizer* or *tester* functions.
 
-Now, for the axioms that Z3 enforces:
+Now, for the axioms that Z3 enforces (no need to memorize, don't worry):
 1. `MkMaybeInt(i1) == MkMaybeInt(i2) ⇒ i1 == i2`
 2. `MkMaybeBool(b1) == MkMaybeBool(b2) ⇒ b1 == b2`
 3. `intVal(MkMaybeInt(i)) == i`
@@ -1255,9 +1265,7 @@ NOT is-MkMaybeInt(x) <-- negation of conclusion
 
 The recognizer can't be true and false at the same time. The compiler deduces that `x` *must* be an `Int` within the block - in other words, it *narrows* the type down from `MaybeIntOrBool` to `Int` within the `if`'s body.
 
-Not only that, the compiler automatically narrows `x` to `Bool` for the rest of the function!
-
-Let's examine the branch where `x` is not an `Int`. Entering that branch traverses the edge with `NOT (x is Int?)`, which adds this fact to our solver on that path:
+Not only that, the compiler automatically narrows `x` to `Bool` for the rest of the function! Let's examine the branch where `x` is not an `Int`. Entering that branch traverses the edge with `NOT (x is Int?)`, which adds this fact to our solver on that path:
 ```
 NOT is-MkMaybeInt(x)
 ```
@@ -1272,7 +1280,7 @@ Remember axioms 8 and 9 from earlier? Axiom 8 asserts that `is-MkMaybeInt(x) OR 
 
 Axiom 9 asserts that both can't be true at the same time. Together, they force that only one of `is-MkMaybeInt(x)` or `is-MkMaybeBool(x)` must be true.
 
-If we already asserted that `NOT is-MkMaybeInt(x)`, then `is-MkMaybeBool(x)` has to be true. That's why the solver returns `UNSAT`, which allows `x` to narrow to `Bool`.
+If we already asserted that `NOT is-MkMaybeInt(x)` as a fact, then `is-MkMaybeBool(x)` has to be true. That's why the solver returns `UNSAT`, which allows `x` to narrow to `Bool`.
 
 With this, we pretty much understand the core idea of how Verifex works under the hood:
 1. Build a CFG of the code
@@ -1292,7 +1300,7 @@ However, I thought mentioning `Any` was important because it provides a small co
 
 Instead, `Any` is represented as what we call an *uninterpreted sort*. The compiler literally just says 'We have a new sort, called `Any`. Uh... that's it.'
 
-The key thing about uninterpreted sorts is that there is no structure attached to them at all. The difference between `Any` and, say, `Point`, is that although both are custom sorts, `Point` has a bunch of axioms that give it structure. `Any` has none.
+The key thing about uninterpreted sorts is that there is no structure attached to them at all. The difference between `Any` and, say, `Point`, is that although both are custom sorts, `Point` has a bunch of axioms that give it structure.
 
 You can still declare that you have values of the `Any` sort, and declare functions that accept and return `Any`, but the only fact Z3 knows is that if `x` is an `Any`, then `x = x`.
 
@@ -1324,7 +1332,7 @@ archetype Shape {
 }
 ```
 
-Like `Point`, it's modelled as an ADT with a `sides` field. The only thing we do differently for archetypes is that we also define functions that convert from structs that match the archetype into that archetype. Verifex internally calls this 'archifying' a struct, but I liked the term, so we're sticking with it.
+Like `Point`, it's modelled as an ADT with a `sides` field. The only thing we do differently for archetypes is that we also define functions that convert from structs that match the archetype into that archetype. Verifex internally calls this 'archifying' a struct, and I liked the term, so we're sticking with it.
 
 Take this example:
 ```rust
@@ -1372,7 +1380,7 @@ x = x + 1;
 
 What the solver sees depends on the path it takes when traversing the CFG. If `cond` is true, then:
 ```
-x is Real
+x is Int
 x0 = 10
 x1 = x0 + 1
 x2 = x1 + 1
@@ -1380,7 +1388,7 @@ x2 = x1 + 1
 
 But if it's false, then:
 ```
-x is Real
+x is Int
 x0 = 10
 x1 = x0 + 1
 ```
@@ -1395,9 +1403,9 @@ for (int i = 0; i < a.Length; i++)
     a[i]++;
 ```
 
-Most optimizing compilers notice that `i` is bounded between `0` and `a.Length - 1`, specifically because the body of the loop doesn't affect `i` directly, and eliminate the bounds check (if it's even a thing in the language).
+Most optimizing compilers notice that `i` is bounded between `0` and `a.Length - 1`, specifically because the body of the loop doesn't affect `i` directly, and in turn can apply optimizations like eliminating the bounds check.
 
-However, many loops in the wild are much more nasty. There's no guarantee the programmer won't write, for example, an interpreter loop where `i` accesses the index of an instruction to execute, and `i` can jump to different values because of some `jump X` instruction where `X` itself isn't even statically known. It is mathematically impossible to fully analyze such a loop's behavior without executing it for *all* inputs.
+However, many loops in the wild are much more nasty. There's no guarantee the programmer won't write, for example, an interpreter loop where `i` accesses the index of an instruction to execute, which can cause `i` to jump to different values because of some `jump X` instruction where `X` itself isn't even statically known. It is mathematically impossible to fully analyze such a loop's behavior without executing it for *all* inputs.
 
 Sound familiar? That's the halting problem ruining a compiler dev's day.
 
@@ -1432,7 +1440,7 @@ We can't really compute `B(P)` directly for any possible `P`, unless we're willi
 
 Instead, what most compilers do is something called *overapproximating* programs - especially loops. When we do so, we don't try to obtain `B(P)`. Rather, we try to obtain *another* set `A(P)` which *contains* `B(P)`.
 
-Wait - we just talked about how `B(P)` was problematic. And now we want to talk about an even bigger set?!
+Wait - we just talked about how `B(P)` was problematic. And now we want to talk about an even bigger set???
 
 See, the trick here is that even though we *can't* compute `B(P)` or `A(P)`, **we can describe them**. In the same way you can never write out the set of all integers greater than 5 by hand, you can still say `{x ∈ Z ∣ x > 5}`. And you can reason that `{x ∈ Z ∣ x > 10} ⊆ {x ∈ Z ∣ x > 5}` (i.e. the set of all integers > 10 are inside the set of all integers > 5)
 
@@ -1458,13 +1466,13 @@ This is a rare trivial case where `B(P)` *can* be described. We can (informally)
 
 So let's instead say that `A(P) = { for any x, y will divide by zero }`. See how `A(P)` definitely contains `B(P)`: "for any x" implies "for all positive x", and the outcome doesn't change.
 
-That's why we say `A(P)` is an overapproximation. We describe a program's behavior, but in loose terms. Better overapproximations gain more detailed descriptions as they approach `B(P)`, describing the program in more concrete terms. This is fundamentally the work that compilers do when analyzing: finding the best overapproximation they can. If the stars align and a miracle happens, they may even stumble upon `B(P)` itself.
+That's why we say `A(P)` is an overapproximation. We describe a program's behavior, but in 'loose' terms. Better overapproximations are tighter, and gain more detailed descriptions as they approach `B(P)`, describing the program in more concrete terms. This is fundamentally the work that compilers do when analyzing: finding the best overapproximation they can. If the stars align and a miracle happens, they may even stumble upon `B(P)` itself.
 
 What's not acceptable, however, is *underapproximation*, which is what Verifex was doing for loops.
 
 If you have a set of execution paths, which we'll call `U(P)`, and `U(P)` is a subset of `B(P)`, then you're only talking about *some* possible execution paths, but not necessarily all of them. If `B(P) = output true if x > 10`, then a possible `U(P)` is `U(P) = output true if x > 15`. Facts that apply to everything in `U(P)` do not necessarily apply to everything in `B(P)`.
 
-The TL;DR is this: overapproximations can lead to false positives, which is annoying but harmless, while underapproximations can lead to false negatives, which ranges anywhere from harmless to catastrophic.
+The TL;DR is this: overapproximations can lead to false positives, which are annoying but harmless, while underapproximations can lead to false negatives, which range anywhere from harmless to catastrophic.
 
 Look at this:
 ```rust
@@ -1490,7 +1498,7 @@ So, how did Verifex fix this?
 
 Well, to be frank, not in a satisfying way. I've stopped the compiler from underapproximating, but my 'fix' leaves a lot to be desired.
 
-Essentially, what the compiler does now is give a little special treatment to loops. When traversing the CFG and encountering a cycle, it checks to see what variables or fields inside that cycle undergo any kind of assignment or mutation. Any that are found get *havoc*ed at the start of the cycle: information about them gets erased.
+Essentially, what the compiler does now is give a little special treatment to loops. When traversing the CFG and encountering a cycle, it checks to see what variables or fields inside that cycle undergo any kind of assignment or mutation. Those found will have information about them erased - this is known as *havoc*ing a variable/value.
 
 In other words, before entering the `while` loop, the compiler discards that `x > 0` and just leaves `x` as a bland term. This means the compiler will reason over `A(P)`, since removing facts gives us a looser representation of the program but ultimately lets us reason over `B(P)`. No matter what iteration the loop is in, our reasoning will be correct - and since `x` would just be a bland term, the division by zero gets caught.
 
@@ -1527,7 +1535,7 @@ interface Shape {
 }
 ```
 
-As a contract, this *works*. It can model an archetype. The issue here is that structs *implicitly* satisfy archetypes, rather than explicitly. This is fundamentally at odds with the way C# handles things: your `Car` is not a `Vehicle` unless you specifically say it is one.
+As a contract, this *works*. It can model an archetype. The issue here is that structs *implicitly* satisfy archetypes, rather than explicitly. This is fundamentally at odds with the way the CLR handles things: your `Car` is not a `Vehicle` unless you specifically say it is one.
 
 Imagine that the `Shape` archetype is defined in a Verifex library, which we'll call `A`, while `Circle` is inside a different library called `B`. `Shape` has no clue what shapes might satisfy it, and it's not its job to know. `Circle` on the other hand does know that `Shape` exists, but because of implicitness, it never outright says it's a `Shape`. The compiler figures that out automatically.
 
@@ -1576,7 +1584,7 @@ No, actually, not so awesome. We've now mandated that `print_area` always involv
 
 Ugh. The .NET runtime also has another component called the Dynamic Language Runtime, or DLR, but we'd still run into the same unavoidable loss of performance since we still do dynamic dispatch. So that's out of the question.
 
-We need to take inspiration from Go. The way it solved this problem is via fat pointers: rather than passing in the value of the object directly, pass in addresses to the methods you want. This is *still* dynamic dispatch, but it doesn't require any allocation.
+We need to take inspiration from Go. The way it solved this problem is via fat pointers: rather than passing in the value of the object directly, pass in addresses to the methods you want. This is *still* dynamic dispatch, but it doesn't require an allocation every time you call the method. 
 
 So instead of:
 ```c
@@ -1592,7 +1600,7 @@ void print_shape(void* shape, int *sides, delegate*<void*, float> area) => print
 
 In principle, this would work perfectly. The issue is that the .NET runtime hates any programmer that tries to take pointers if it needs to cross into any kind of managed territory, or is an instance method.
 
-In Verifex, struct types correspond directly to C# structs. There's no magic there. If I do something like `let x = Circle { ... };`, then `x` is going to be stack-allocated. Because it's an unmanaged type (meaning it doesn't hold any references to something on the heap), obtaining pointers to it and its fields is something .NET will allow us to do. If it were managed, we wouldn't be able to take a pointer to `x`, only its members.
+Initially, I had structs in Verifex correspond directly to C# structs. There's no magic there. If I did something like `let x = Circle { ... };`, then `x` would be stack-allocated. Because it's an unmanaged type (meaning it doesn't hold any references to something on the heap), obtaining pointers to it and its fields is something .NET will allow us to do. If it were managed, we wouldn't be able to take a pointer to `x`, only its members.
 ```cs
 unsafe struct Circle
 {
@@ -1605,9 +1613,9 @@ unsafe struct Circle
 unsafe void foo()
 {
     Circle c = new Circle();
-    var a = &c; // ok
-    var b = &c.sides; // ok
-    var c = &c.area; // runtime gets pissy
+    var e = &c; // ok
+    var f = &c.sides; // ok
+    var g = &c.area; // nope!
 }
 ```
 
@@ -1670,7 +1678,7 @@ To be frank, I don't think there's a clean solution to this that allows things t
 
 The square peg does not go into the circle hole.
 
-The most obvious way out I see is to literally just allocate a huge chunk of memory and make our own heap. At that point, it comes off as ridiculous.
+The most obvious way out I see is to literally just allocate a huge chunk of memory and make our own heap and GC... within the runtime that has its own heap and GC. So no, that's just ridiculous.
 
 Some of you might have been thinking of pulling out good ol' `System.Reflection.Emit` and just generating everything we need at runtime. Thing is, chanting that namespace at 3AM in front of a mirror in the dark causes something... native and ahead-of-time to manifest and attack. It took my friend.
 
@@ -1697,19 +1705,19 @@ struct BoundCounter {
 }
 ```
 
-This is totally something I can add. Just ran out of time. It'd help model correctness a *lot* better.
+This is something I really want to look into. Just ran out of time. It'd help model correctness a *lot* better.
 
-2. *Quantifiers*: it'd be nice to maybe have something like
+2. *Existential Quantifiers*: it'd be nice to maybe have something like
 ```rust
-type PositiveReals = Real[] where all > 0.0;
+type HasEven = Real[] where exists(value) % 2 == 0;
 ```
-so you can enforce conditions on every element in a collection. You can already do this via refining over `Real` and then using `PositiveReal[]`, but a shorthand is nice. Having existential quantifiers however would be an expressivity boost.
+so you can express that there must exist an element within an array that satisfies a property.
 
 3. Generics
 4. *Ergonomics*. We don't even have `for` loops, only `while`. It'd be nice to even have a `foreach` equivalent. As well as shorthand syntax like `i += 1` or `fn foo() => print("Hello, World!");`.
-5. Lots, and I mean *lots* more tests. The compiler is severely undertested and kind of runs on hopes and prayers. I promise it was just a time issue. Worst case, I find scenarios where it underapproximates programs. Does anyone know good ways to test compilers well?
+5. Lots, and I mean *lots* more tests. The compiler is kind of undertested and runs on hopes and prayers. I promise it was just a time issue. Worst case, I find scenarios where it underapproximates programs. Does anyone know good ways to test compilers well?
 6. Divorce .NET immediately. I don't want to target it anymore, it wasn't really a great idea in the first place. Perhaps it might be time to work with the abyss that is LLVM... ~~or just transpile to C~~
-7. Right now, we only ask the solver to check satisfiability. But it can often find *concrete* counter-examples that show us why the program might be incorrect. Huge waste not to make use of that! This'd allow the compiler to tell you 'this assignment isn't safe when `x = 5`' instead of 'it isn't safe'
+7. Right now, we only ask the solver to check satisfiability. But it can often find *concrete* counter-examples that show us why the program might be incorrect. Huge waste not to make use of that! This'd allow the compiler to tell you 'this assignment isn't safe when `x = 5`' instead of only 'it isn't safe'
 8. Clean up the code. Actually, I'd probably rewrite Verifex as a whole first.
 9. Figure out what I want to do with the `Any` type
 
@@ -1717,6 +1725,6 @@ Oh, I already said this, but you can try Verifex yourself! I made a [web playgro
 
 The compiler and language implementation lives on [GitHub](https://github.com/Trivaxy/Verifex). Be warned: there is some degree of code smell. Cramming does that.
 
-Still, looking back... *not bad*. I sincerely hope you enjoyed reading this post as much as I had writing it. I'll try to revisit Verifex at some point, but for now, I'm too busy hunting for jobs. Would love to work on something related to compilers, interpreters, runtimes, the whole shebang. Or anything systems-related. But until then...
+Still, looking back... *not bad*. I sincerely hope you enjoyed reading this post as much as I had writing it. I'll try to revisit Verifex at some point, but for now, I'm too busy hunting for jobs. My goal is to end up working on something related to compilers, interpreters, runtimes, the whole shebang. Or anything systems-related. But until then...
 
 `UNSAT`

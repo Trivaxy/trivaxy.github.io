@@ -25,6 +25,15 @@
   root.setAttribute('data-theme', theme);
 })();
   </script>
+
+  <script>
+  // Redirect to trivaxy.dev so that analytics works
+  if (location.hostname === "trivaxy.github.io") {
+    location.replace("https://trivaxy.dev" + location.pathname + location.search);
+  }
+  </script>
+  <link rel="canonical" href="https://trivaxy.dev/">
+
   {% endraw %}
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/prism.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-c.min.js"></script>
@@ -144,6 +153,8 @@
     }
   }
   </script>
+
+  <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "185954d7ca5842e4bfd0c0b5bc505029"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
 

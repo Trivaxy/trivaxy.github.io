@@ -1,6 +1,7 @@
 ---
 layout: layouts/base.njk
 title: Nutcracker, Part 1
+eleventyExcludeFromCollections: true
 ---
 
 Randomness is awesome. It's in everything, from simple dice rolls, games, gambling, investing... all the way to quantum mechanics, apparently.

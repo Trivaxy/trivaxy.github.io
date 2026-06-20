@@ -1,6 +1,7 @@
 ---
 layout: layouts/base.njk
 title: Compilers - From Play to Production
+eleventyExcludeFromCollections: true
 ---
 
 I'm a nerd when it comes to creating compilers and interpreters.

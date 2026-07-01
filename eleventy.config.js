@@ -9,6 +9,7 @@ const MONTHS = [
 module.exports = function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets");
   eleventyConfig.addPassthroughCopy("src/posts/**/images/**");
+  eleventyConfig.addPassthroughCopy("atlas.png");
   eleventyConfig.addCollection("posts", (api) =>
     api.getFilteredByGlob("src/posts/**/*.md").sort((a, b) => b.date - a.date)
   );

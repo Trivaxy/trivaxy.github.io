@@ -2,7 +2,11 @@
   const canvas = document.getElementById('background');
   if (!canvas) return;
 
-  const GRID_SIZE = 200;
+  const DESKTOP_GRID_SIZE = 200;
+  const MOBILE_MAX_WIDTH = 768;
+  const MOBILE_MIN_GRID_SIZE = 90;
+  const MOBILE_MAX_GRID_SIZE = 150;
+  const MOBILE_TARGET_CELL_PX = 5;
   const MODES = ['life', 'ant'];
 
   let running = false;
@@ -10,6 +14,22 @@
   let cleanupFn = null;
   let currentMode = 'life';
   let startToken = 0;
+  let activeGridSize = 0;
+  let resizeTimer = 0;
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function getResponsiveGridSize() {
+    const width = window.innerWidth || document.documentElement.clientWidth || DESKTOP_GRID_SIZE;
+    const height = window.innerHeight || document.documentElement.clientHeight || DESKTOP_GRID_SIZE;
+    const longestSide = Math.max(width, height);
+    if (Math.min(width, height) > MOBILE_MAX_WIDTH) {
+      return DESKTOP_GRID_SIZE;
+    }
+    return clamp(Math.round(longestSide / MOBILE_TARGET_CELL_PX), MOBILE_MIN_GRID_SIZE, MOBILE_MAX_GRID_SIZE);
+  }
 
   // Wait for DOM to be fully ready and styles to be computed
   function waitForStyles() {
@@ -60,15 +80,22 @@
   }
 
   function getThemeColors() {
-    const theme = document.documentElement.getAttribute('data-theme');
-    const alive = theme === 'dark' ? [1, 1, 1] : [0, 0, 0];
-    const bg = theme === 'dark' ? [0, 0, 0] : [1, 1, 1];
+    let alive = [1, 1, 1];
+    let bg = [0, 0, 0];
     let accent = alive;
 
     try {
       const style = getComputedStyle(document.documentElement);
+      const parsedFg = parseCssColor(style.getPropertyValue('--fg'));
+      const parsedBg = parseCssColor(style.getPropertyValue('--bg'));
       const link = style.getPropertyValue('--link');
       const parsed = parseCssColor(link);
+      if (parsedFg) {
+        alive = parsedFg;
+      }
+      if (parsedBg) {
+        bg = parsedBg;
+      }
       if (parsed) {
         accent = parsed;
       }
@@ -938,9 +965,11 @@
 
       let sim;
       try {
-        sim = createSimulation(gl, currentMode, GRID_SIZE);
+        activeGridSize = getResponsiveGridSize();
+        sim = createSimulation(gl, currentMode, activeGridSize);
       } catch (e) {
         running = false;
+        activeGridSize = 0;
         document.documentElement.setAttribute('data-sim', 'off');
         canvas.style.display = 'none';
         return;
@@ -984,6 +1013,7 @@
     }
     running = false;
     startToken++;
+    activeGridSize = 0;
     if (cleanupFn) {
       cleanupFn();
       cleanupFn = null;
@@ -1018,11 +1048,21 @@
     modes: MODES.slice(),
   };
 
+  window.addEventListener('resize', () => {
+    if (!running) {
+      return;
+    }
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => {
+      const nextGridSize = getResponsiveGridSize();
+      if (nextGridSize !== activeGridSize) {
+        start(currentMode);
+      }
+    }, 150);
+  });
+
   start();
 })();
-
-
-
 
 
 

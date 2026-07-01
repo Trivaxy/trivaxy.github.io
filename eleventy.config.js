@@ -1,6 +1,11 @@
 const syntaxHighlight = require("@11ty/eleventy-plugin-syntaxhighlight");
 const markdownItAnchor = require("markdown-it-anchor");
 
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
 module.exports = function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets");
   eleventyConfig.addPassthroughCopy("src/posts/**/images/**");
@@ -8,6 +13,12 @@ module.exports = function(eleventyConfig) {
     api.getFilteredByGlob("src/posts/**/*.md").sort((a, b) => b.date - a.date)
   );
   eleventyConfig.addPlugin(syntaxHighlight);
+
+  // Deterministic date formatting, e.g. "May 20, 2026"
+  eleventyConfig.addFilter("readableDate", (dateObj) => {
+    const d = new Date(dateObj);
+    return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+  });
   
   // Add custom filter to extract TOC from content
   eleventyConfig.addFilter("tocExtract", (content) => {

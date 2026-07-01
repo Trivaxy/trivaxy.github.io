@@ -2,6 +2,7 @@
 layout: layouts/base.njk
 title: WebAssembly is not about the Web
 description: Taking a moment to look at the current state of WebAssembly, and considering if we should take "Web" out of the name
+date: 2026-07-01
 ---
 
 [WASI 0.3](https://bytecodealliance.org/articles/WASI-0.3) is now official, and the Bytecode Alliance has begun the journey towards the [1.0 version of the Component Model](https://bytecodealliance.org/articles/the-road-to-component-model-1-0)! Wow!

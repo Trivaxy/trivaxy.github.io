@@ -35,13 +35,27 @@
   function waitForStyles() {
     return new Promise((resolve) => {
       function checkStyles() {
-        const computedStyle = getComputedStyle(document.documentElement);
-        const bgColor = computedStyle.getPropertyValue('--bg').trim();
-        if (bgColor && bgColor !== '') {
-          resolve();
-        } else {
+        const root = document.documentElement;
+        const theme = root.getAttribute('data-theme');
+        if (!theme) {
           requestAnimationFrame(checkStyles);
+          return;
         }
+        const computedStyle = getComputedStyle(root);
+        const bgColor = computedStyle.getPropertyValue('--bg').trim();
+        if (!bgColor) {
+          requestAnimationFrame(checkStyles);
+          return;
+        }
+        if (theme === 'dark' && bgColor === '#ffffff') {
+          requestAnimationFrame(checkStyles);
+          return;
+        }
+        if (theme === 'light' && bgColor !== '#ffffff') {
+          requestAnimationFrame(checkStyles);
+          return;
+        }
+        resolve();
       }
       requestAnimationFrame(checkStyles);
     });
@@ -1055,10 +1069,10 @@
     window.clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
       const nextGridSize = getResponsiveGridSize();
-      if (nextGridSize !== activeGridSize) {
+      if (nextGridSize !== activeGridSize && Math.abs(nextGridSize - activeGridSize) > 10) {
         start(currentMode);
       }
-    }, 150);
+    }, 300);
   });
 
   start();

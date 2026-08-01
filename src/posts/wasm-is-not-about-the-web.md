@@ -15,7 +15,7 @@ Before diving in, it's worth having a recap of what WebAssembly is and how it ca
 
 For years, if you wanted to execute any kind of logic on the browser, JavaScript was the only tool you had available. Yes, you could choose to write in other languages (TypeScript, CoffeeScript, Haxe, etc) and then invoke a compiler that produces JavaScript that runs on the browser. A scripting language, used as a compilation target!
 
-Whether this is a good thing or if it's blasphemy is up to you, though considering how HTML/CSS have also become compilation targets as well, it's poetic that JavaScript joined them.
+Whether this is a good thing or if it's blasphemy is up to you, though considering how HTML/CSS had become compilation targets as well, it's only poetic that JavaScript joined them to form the (un)holy trifecta of Things Meant To Be Written By Hand That No One Wants To Write By Hand™
 
 Imagine you're creating a cool web application that can convert videos and audios to different formats, compress them, change bitrate, perform muxing etc. all on the clientside, without requiring a server. You search for a library to do this, and come across [WebCodecs](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API)!
 
@@ -25,7 +25,7 @@ If only there was something that could [do all this](https://github.com/ffmpeg/f
 
 Had this been 2014, you would've sighed, closed the project and `rm`'d the directory. You weren't willing to do this serverside, as the selling point was doing this on the user's browser.
 
-Thankfully, it's *not* 2014. 12 years later, running ffmpeg wasn't just possible, it was explicitly supported by the project because of a neat thing that popped up dubbed **WebAssembly**.
+Thankfully, it's *not* 2014. 12 years later, running ffmpeg wasn't just possible, it was explicitly supported by the project because of a neat thing that popped up in the meantime dubbed **WebAssembly**.
 
 ## But what is WebAssembly?
 
@@ -38,7 +38,7 @@ int square(int num) {
 }
 ```
 
-You can take that function and compile it *into* a WebAssembly module using `clang` (though doing this manually isn't preferable, which I'll get to in a moment).
+You can take that function and compile it *into* a WebAssembly module using `clang` (though usually doing this manually isn't preferable, which I'll get to in a moment).
 
 ```
 clang --target=wasm32-unknown-unknown -O3 -nostdlib \
@@ -95,11 +95,11 @@ In this case:
 2. `local.get $p0` -> push `num` onto the stack again
 3. `i32.mul` -> pop both values off the stack, push `num * num`
 
-The function implicitly returns what's left on the stack.
+The function implicitly returns what's left on the stack if there's no explicit `return` instruction.
 
 ## Actually doing something
 
-Now that we have our `square.wasm` module, how can we get it to actually, you know, *do something*?
+Now that we have our `square.wasm` module, how can we, you know, *use it*?
 
 Simple. On your browser:
 ```js
@@ -206,7 +206,7 @@ Well, that's pretty nifty! The outside world can use the module's functions, and
 
 So far, I'd only given a general feel for what WebAssembly *is*, fundamentally. It's just a code execution box that languages can target.
 
-And that's exactly where most of the issues lie: WebAssembly is a *compilation target*, and was always designed to be that first and foremost. This means that it tries to make minimal assumptions about the languages that target it, which means that when a language does compile to WebAssembly (can I start abbreviating it as WASM? thanks), things can get *messy*.
+And that's exactly where all the difficulties lie. WebAssembly is a *compilation target*, and was always designed to be that first and foremost. This means that it tries to make minimal assumptions about the runtimes (or lack thereof) for languages that target it, which means that when a language does compile to WebAssembly (can I start abbreviating it as WASM? thanks), things can get *messy*.
 
 Let's continue with C. This time, we want to compile this function to a WASM module:
 ```c
@@ -243,7 +243,7 @@ Notice that `(export "memory")` as well - just like with functions, you can expo
 What we need at the moment is a way to send a string over to the WASM module and vice versa. Outside of WASM, strings are (usually) just a region of bytes, often null-terminated if you're C. We can easily use linear memory to do something identical:
 1. Access the module's linear memory from the host
 2. Set a region of bytes to something like "Hello\0", UTF-8 encoded
-3. Get the index of the first character's position in linear memory (its pointer, basically)
+3. Get the index of the first character's position in linear memory (the string's pointer, basically)
 4. Call `reverse_string` from the host side, passing that index and the length of the string
 
 From then on, `reverse_string` handles swapping the characters in linear memory. The host then reads that region back as UTF-8, and voila.
@@ -260,7 +260,7 @@ What to do, then?
 
 Remember our current problem: given a C/C++ codebase, how can we compile it to run on the web with minimal changes to the source?
 
-Earlier, I said that you typically don't want to use `clang` manually to produce `.wasm` blobs. The target, which is `wasm32-unknown-unknown`, makes minimal assumptions about the host environment. This means that it won't pull in libc or provide any functions that allow interaction with the external system, so no file APIs, no sockets, no clocks or randomness, no interaction with stdout/stdin, etc.
+Earlier, I said that you typically don't want to use `clang` manually to produce `.wasm` blobs. The target, which is `wasm32-unknown-unknown`, knows nothing about the host environment. This means that it won't pull in libc or provide any functions that allow interaction with the external system, so no file APIs, no sockets, no clocks or randomness, no interaction with stdout/stdin, etc.
 
 Your WASM module essentially just lives in a vacuum. This is fine for some use cases, perhaps if your module is mainly used for number crunching and doesn't need to interact with the host other than returning results, but most C/C++ software does need some kind of interaction with the system it runs on. When compiling to WASM, *something* needs to bridge that gap and make the module capable of talking to the host as if it were a 'regular' system.
 
@@ -285,13 +285,13 @@ int main() {
 Emscripten invokes `clang` to compile your code to WASM, however, it explicitly instructs `clang` to treat symbols like `printf` as *imported functions* in the module, rather than seeking out an implementation and complaining when it doesn't find one.
 
 It also generates a JavaScript file alongside your WASM module where all the magic happens. This JS file does a *ton* of the work:
-1. It provides implementations of functions like `printf`. Remember our earlier example with `log_val`? Same concept here - Emscripten is providing the host implementation of `printf` that the module can call.
+1. It provides implementations of functions like `printf`. Remember our earlier example with `log_val`? Same concept here - Emscripten generates an implementation for `printf` on the host which delegates to `console.log`.
 2. It provides a *C runtime environment*. Take a function like `fopen` for example. Emscripten provides an implementation for it by emulating a virtual filesystem in-memory. Most of the commonly used functions in C/C++ codebases have an implementation in Emscripten, so it's essentially providing a POSIX API to the WASM module. It also provides implementations for OpenGL and SDL functions by relying on the browser canvas, plus other things. You get the point. It emulates the world for WASM.
 3. Emscripten also provides abstractions for calling WASM functions. It deals with serializing values, placing them in the module's linear memory, calling the function, and deserializing the returned values from memory for the JS side
 
 This isn't an exhaustive list, Emscripten employs other techniques which are also important such as optimizing the generated WASM and emulating some C/C++ language features, but those are the 3 biggest ones.
 
-The end result from your perspective is that you end up with a `.wasm` blob, containing the compiled application, and `.js` glue which the blob needs to work, and the glue *you* need to call into the functions in the blob.
+The end result from your perspective is that you end up with a `.wasm` blob containing the compiled application, and a `.js` file containing host-side implementations of functions (like `fopen`) the application needs to work *and* the glue you need to call into the functions in the blob.
 
 With this, we can breathe a sigh of relief: ffmpeg can in fact [run on the browser](https://github.com/ffmpegwasm/ffmpeg.wasm).
 
@@ -303,7 +303,7 @@ Yes, yes you can.
 
 A WebAssembly runtime, which is the software that consumes your WASM module and *runs* it, can very much run outside the browser. In fact, there are *too many* WASM runtimes out there. Notable examples are [Wasmtime](https://wasmtime.dev/), [Wasmer](https://wasmer.io/), [WasmEdge](https://wasmedge.org/), [WAMR](https://bytecodealliance.github.io/wamr.dev/)...
 
-Whatever! There's a ton. You can just check [this repo](https://github.com/appcypher/awesome-wasm-runtimes) if you don't believe me.
+Whatever! There's a ton. So many [there's a repo](https://github.com/appcypher/awesome-wasm-runtimes) for it.
 
 ... A couple of things on there aren't runtimes, for some reason, but still relevant.
 
@@ -311,33 +311,34 @@ WebAssembly, as a compilation target, has useful features that make it compellin
 
 Imagine, for example, that you're developing the backend of an application that scales up and down based on user demand. Latency is important to you, and depending on load, you may need to spin up VMs or destroy them to cut costs.
 
-You take a look at the offerings for your cloud provider, and notice that the price fluctuates between ARM machines and x86 machines as time passes. Sometimes, it's cheaper to deploy on x86. Other times, ARM is cheaper - but the problem is that if your workload is *architecture-specific*, meaning you need separate artifacts for x86 and ARM, you increase complexity all around for your build and deployment process, and you accept the risk of running into architecture-specific quirks.
+You take a look at the offerings of your cloud provider, and notice that the price differs between ARM machines and x86 machines across regions. Somewhere, it's cheaper to deploy on x86. In other places, ARM is cheaper - but the problem is that if your workload is *architecture-specific*, meaning you need separate artifacts for x86 and ARM, you increase complexity all around for your build and deployment process, and you accept the risk of running into architecture-specific quirks.
 
-Most teams as a result just make a decision early on to only deploy on x86 or ARM - usually the former - but WebAssembly offers an alternative: just compile to `.wasm`, pick a runtime like Wasmtime to install on the target machine, and run the application. Done. As long as the application can be turned into a `.wasm` module, it will run anywhere a WASM runtime can run.
+Many teams as a result just make a decision early on to only deploy on x86 or ARM - usually the former - but WebAssembly offers an alternative: just compile to `.wasm`, pick a runtime like Wasmtime to install on the target machine, and run the application. Done. As long as the application can be turned into a `.wasm` module, it will run anywhere a WASM runtime can run.
 
 This is essentially the same advantage runtimes like .NET or the JVM provide, but taken further, as WASM is meant to be a *universal* target. C, C++, Rust, Zig, Go - at the moment, they excel at compiling to WASM and can reap its benefits. Other languages are catching up.
 
 Another big talking point behind using WASM is an alternative to Docker (and existing containerization) in general. You might have seen [this tweet](https://xcancel.com/solomonstre/status/1111004913222324225?lang=en) by the creator of Docker before, which I think is worth dissecting.
 
-I'm not the creator of Docker, so take this with a grain of salt - but Docker and WASM solve problems which overlap but aren't the same. Docker is meant to containerize your app by isolating it on top of the linux kernel directly and giving it a reproducible environment, but the actual execution of your application doesn't change. An x86 binary will still be running on the CPU as an x86 binary, and it can do anything a Linux process can do (provided it has the permissions, of course). Its strongest selling point is killing the 'Well, it works on my machine' argument.
+I'm not the creator of Docker, so take this with a grain of salt - but Docker and WASM solve problems which overlap but aren't the same. Docker is meant to containerize your app by isolating it on top of the linux kernel directly and giving it a reproducible environment, but the actual execution of your application doesn't change. An x86 binary will still be running on the CPU as an x86 binary, and it can do anything a Linux process can do (provided it has the permissions, of course). Docker's selling point is killing the 'Well, it works on my machine' excuse.
 
-WASM is an interesting deviation: instead of spawning containers, the runtime itself becomes the container. If you can manage to take your entire application and its dependencies and compile them into WASM, and you make them target WASI (or just any API that lets them talk to the external world) with minimal to no changes in source code, I think you've got a contender. WASM runtimes often start up insanely fast and beat containers in that regard, and have a smaller footprint.
+WASM attacks that from a different angle. Instead of relying on Linux kernel features, the runtime itself becomes the container. If you can manage to take your entire application and its dependencies and compile them into WASM, and you make them target WASI (or just any API that lets them talk to the external world) with minimal to no changes in source code, I think you've got a Docker contender. WASM runtimes often start up faster than traditional containers while having a smaller footprint. It also lets you containerize on Windows without WSL2, though I'm not sure why one would voluntarily choose to deploy on Windows.
 
-So I *get* the point Solomon is making. Some big usecases can be served by both containers and WASM, but containers have an advantage here because they don't restrict the way you build your applications. The workflow is the opposite: you take an existing application, *figure out* how to containerize it, done. With WASM, the 'containerization' phase starts from within your IDE, which may not be a good thing.
+So I *get* the point Solomon is making. Some big usecases can be served by both Docker and WASM, but Docker containers have an advantage here because they don't restrict the way you build your applications. The workflow starts from the opposite end: you take an existing application's artifacts, *figure out* how to containerize them, done. With WASM, the 'containerization' phase starts at the source level from within your editor, which isn't necessarily a good thing.
 
-Aside from containers, WASM is also establishing a strong niche when it comes to creating plugin/extension support for applications. If you want to allow users to write and run custom code to add additional functionality to an app, as well as distribute that code for others to use, you have a tradeoff to make:
+Containerization aside, WASM is establishing a strong niche when it comes to creating plugin/extension support for applications. If you want to allow users to write and run custom code to add additional functionality to an app, as well as distribute that code for others to use, you have a tradeoff to make:
 1. Use a scripting language, such as Lua
 2. Embed a WASM runtime in your application, treating WASM modules as extensions
+3. ~~Link to native libraries at runtime if you don't even care about security~~
 
-Both are valid, and most applications go with the first approach, but there's reasons why the second approach with WASM exists now.
+Most applications go with the first approach, but there's reasons why the second approach with WASM exists now.
 
 When you choose option 1, you gain ease of embedding by trading away performance (unless you use LuaJIT), which may or may not be an issue depending on your application. Additionally, you force developers to use Lua or any of the few languages that compile to it which often feel like Lua anyways. Not all developers enjoy the language. Still, embedding Lua is easy and widespread. It's successful for a reason.
 
-Option 2 is more interesting. If you load and run WASM modules as extensions, you often have a higher performance ceiling, since WASM was designed for near-native speed execution (again, may not be relevant to you, depending on the app), but it's also *language-agnostic*. Developers can choose any language they want, *and* use any libraries they want, as long as it can compile to a WASM module. It unlocks developer preference and access to ecosystems, of which Lua generally achieves neither (Lua has an ecosystem, but it's much smaller than Rust's or C's by comparison)
+Option 2 is more interesting. If you load and run WASM modules as extensions, you often have a higher performance ceiling, since WASM was designed for near-native speed execution (again, may not be relevant to you, depending on the app), but it's also *language-agnostic*. Developers can choose any language they want, *and* - this is big - use any libraries they want, as long as it can all compile to a WASM module. It unlocks developer preference and access to big ecosystems, of which Lua generally achieves neither (Lua has an ecosystem, but it's much smaller than Rust's or C's by comparison)
 
-Another perspective is security, which is a main focus for WASM. To be clear, "secure" in this case means that code executing inside WASM is confined to a sandbox and cannot see or access anything from the outside world. You are the one that has to explicitly give it access to do anything. A compromised WASM module is far less likely to compromise the sandbox/host, hence why WASM is really appealing when you want to run untrusted code in general.
+Another perspective is security, which is a main focus for WASM. To be clear, "secure" in this case means that code executing inside WASM is by default confined to a sandbox and cannot see or access anything from the outside world. You are the one that has to explicitly give it access to do anything. Typical Lua implementations provide access to the system by default, relying on *you* to lock it down, which is more error-prone.
 
-WebAssembly had broken out of the browser.
+Containerization and extensibility. Hmm. Safe to say WebAssembly has broken out of the web.
 
 ## WASI
 
@@ -351,29 +352,31 @@ Again, at the end of the day, this is all a matter of a WASM module listing impo
 
 WASM was originally designed with systems languages in mind, such as C/C++/Rust, as that's where most of the "applications we want to run in the browser but can't just port to JS" scenarios lay. Additionally, their nature as systems languages that don't require a runtime made them good fits. They only needed to map their semantics at the lowest level to WASM, which it was designed to be receptive towards (e.g. linear memory really is just a heap in terms of functionality).
 
-However, this begs the question: what about other languages, like Python, C#, or Java? Those aren't compiled ahead-of-time into native executables, instead relying on managed runtimes. They lack a clear correspondence with WASM's semantics, unlike a language such as C.
+However, this begs the question: what about other languages, like Python, C#, or Java? Those aren't (typically) compiled ahead-of-time into native executables, instead relying on managed runtimes. They lack a clear correspondence with WASM's semantics, unlike a language such as C.
 
-The good news is that this isn't a dealbreaker. The runtimes themselves *are* written in C/C++, which we can compile to WASM. That's the idea behind projects like [Pyodide](https://pyodide.org/en/stable/), which compiles the CPython runtime to WASM via Emscripten, which you can then feed Python code to be interpreted as normal.
+The good news is that this isn't a dealbreaker. The runtimes themselves *are* written in C/C++, which we can compile to WASM. That's the idea behind projects like [Pyodide](https://pyodide.org/en/stable/), which compiles the CPython runtime to WASM via Emscripten, which you can then feed Python code to be interpreted.
 
 Runtimes which rely on a JIT compiler, like the JVM or .NET, are trickier. JITs fundamentally rely on self-modifying code: they write machine instructions to memory, mark the region as executable, and use it. WASM strictly disallows any kind of self-modifying code by design for security reasons, meaning you cannot have JIT behavior inside the module.
 
-This also isn't a dealbreaker. .NET for example strips out the JIT, and only interprets bytecode when compiled to WASM. It's much slower, but that's the standard path that frameworks such as Blazor use. That said, .NET's AOT scene is getting quite mature, and modern .NET uses a mix of emitting direct WASM instructions and interpreting where needed.
+This also isn't a dealbreaker. .NET for example strips out the JIT, and only interprets bytecode when compiled to WASM. It's much slower, but that's the standard path that frameworks such as Blazor use. That said, .NET's AOT scene is getting quite mature, and modern .NET uses a mix of compiling the app to WASM and interpreting where needed.
 
 The JVM has several different approaches, such as with [GraalVM Web Images](https://www.graalvm.org/latest/reference-manual/web-image/), [TeaVM](https://teavm.org/) and [CheerpJ](https://cheerpj.com/).
 
 Again, the number of languages which have paths to WASM exceeds what I've listed here - these are just examples off the top of my head.
 
-That said, it is becoming a lot easier for languages with runtimes to target WASM, specifically because of the WasmGC proposal, which is officially part of the WebAssembly 3.0 spec. Most browsers support it.
+That said, it is becoming a lot easier for languages with runtimes to target WASM, specifically because of the WasmGC proposal that is officially part of the WebAssembly 3.0 spec. Most browsers support it.
 
 What makes WasmGC important is *specifically* the aforementioned group of languages we just talked about that require runtimes, which are often responsible for allocating and deallocating objects automatically and tracking lifetimes.
 
-The proposal, to make a long story short, makes it possible to do the following:
-1. You can define custom data structures such as structs and arrays (growable!), and state that a struct is a subtype of another struct
-2. You can then allocate instances of those types using instructions like `struct.new` and `array.new`. The key thing here is that those values are allocated and managed by *the WASM runtime*, they do not live inside the module directly. Those instructions return completely opaque handles (references) that can't be constructed any other way
-3. The WASM runtime is responsible for managing the lifetime of those objects and freeing them when they're not needed
+The proposal, to make a long story short, makes it possible to do the following in a WASM module:
+1. You can define custom data structures such as structs and arrays (that can grow!), and state that a struct is a subtype of another struct
+2. You can then allocate instances of those types using new instructions like `struct.new` and `array.new`. The key thing here is that those values are allocated and managed by *the host*, they do not live inside the module directly. Those instructions return completely opaque handles (references) that can't be constructed any other way
+3. The host is responsible for managing the lifetime of those objects and freeing them when they're not needed
 4. Plus a bunch of other instructions for operations like testing reference equality, testing the type of a reference, and casting a reference
 
-The entire idea behind WasmGC is "stop compiling your language's runtime to WASM, just emit a WASM module containing only your logic and take advantage of the WASM runtime giving you a GC and primitives to achieve OOP". Seems to work for a lot of languages, though not for .NET which has interior pointers. That's a whole topic which I won't get into this post, but it's worth a search!
+The entire idea behind WasmGC is "stop compiling your language's runtime to WASM, just emit a WASM module containing only your logic and take advantage of the WASM runtime giving you a GC and primitives to achieve OOP". Seems to work for a lot of languages.
+
+[Except .NET.](https://github.com/dotnet/runtime/issues/94420) `¯\_(ツ)_/¯`
 
 ## The Component Model
 
@@ -405,6 +408,8 @@ We're at the end! I hope I shed some light on how WebAssembly is receiving the s
 
 WASM's case is more interesting than NodeJS though, since it isn't exactly 'yet another language' and moreso 'yet another substrate'. A platform that promises near-native performance, security, and portability. Maybe even world peace, which I'd say the JVM achieved the opposite of!
 
-I don't want to come across as someone willing to die for WASM - I think it's interesting, but it's still something you reach for when you actually *need* it. I'm not spending hours trying to make my app play nice with WASM unless I know there's a big ROI, but it's certainly useful when circumstances demand it. To me, my main usecases for WASM would be targeting browsers, or running untrusted code as plugins for an app. Still not sure about using WASM for deployments, but if the component model achieves what it's promising, *maybe* I can toy around with it.
+I don't want to come across as someone willing to die for WASM - I think it's interesting, but it's still something you reach for when you actually *need* it. I'm not spending hours trying to make my app play nice with WASM unless I know there's a big ROI, but it's certainly useful when circumstances demand it. To me, my main usecases for WASM would be targeting browsers (wow), or running untrusted code as plugins for an app. Still not sure about using WASM for deployments, but if the component model achieves what it's promising, *maybe* I can toy around with it.
 
-All in all, I think the takeaway here is that whatever is developed for the browser will eventually escape the browser. [Even browsers have already escaped browsers.](https://www.electronjs.org/)
+So what's the takeaway here?
+
+Whatever is developed for the browser will eventually escape the browser. [Even browsers have already escaped browsers.](https://www.electronjs.org/)
